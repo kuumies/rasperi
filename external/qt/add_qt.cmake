@@ -1,0 +1,20 @@
+find_package(Qt5Core REQUIRED)
+include_directories(${Qt5Core_INCLUDE_DIRS})
+add_definitions(${Qt5Core_DEFINITIONS})
+set(QT_LIBRARIES ${QT_LIBRARIES} ${Qt5Core_LIBRARIES})
+
+find_package(Qt5Gui REQUIRED)
+include_directories(${Qt5Gui_INCLUDE_DIRS})
+include_directories(${Qt5Gui_PRIVATE_INCLUDE_DIRS})
+add_definitions(${Qt5Gui_DEFINITIONS})
+set(QT_LIBRARIES ${QT_LIBRARIES} ${Qt5Gui_LIBRARIES})
+
+find_package(Qt5Widgets REQUIRED)
+include_directories(${Qt5Widgets_INCLUDE_DIRS})
+add_definitions(${Qt5Widgets_DEFINITIONS})
+set(QT_LIBRARIES ${QT_LIBRARIES} ${Qt5Widgets_LIBRARIES})
+
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTORCC ON)
