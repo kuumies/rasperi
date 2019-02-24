@@ -42,6 +42,9 @@ set(CMAKE_MODULE_PATH
 include(add_glm)
 include(add_qt)
 
+find_package(openmp REQUIRED)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+
 #---------------------------------------------------------------------
 # System install
 

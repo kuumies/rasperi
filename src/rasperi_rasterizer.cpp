@@ -285,6 +285,9 @@ public:
                    const glm::dmat3& normalMatrix,
                    const glm::dvec3& lightDir)
     {
+        QTime timer;
+        timer.start();
+
         sampler.reset();
         //if (!triangleMesh.albedoMap.empty())
         //    sampler = std::make_unique<Sampler>(QImage(QString::fromStdString(triangleMesh.albedoMap)));
@@ -301,6 +304,8 @@ public:
 
             rasterize(tri, matrix, normalMatrix, lightDir);
         }
+
+        qDebug() << __FUNCTION__ << timer.elapsed() << "ms";
     }
 
     void rasterize(const Triangle& tri,
@@ -328,6 +333,7 @@ public:
         bb.update(vpP2);
         bb.update(vpP3);
 
+        #pragma omp parallel for
         for (int y = bb.min.y; y <= bb.max.y; ++y)
         for (int x = bb.min.x; x <= bb.max.x; ++x)
         {
