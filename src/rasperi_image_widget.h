@@ -24,6 +24,7 @@ public:
 
 protected:
     void paintEvent(QPaintEvent* e) override;
+    void keyPressEvent(QKeyEvent* e) override;
 
 private:
     struct Impl;

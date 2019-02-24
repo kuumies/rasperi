@@ -98,12 +98,12 @@ void Rasterizer::setProjectionMatrix(const glm::dmat4& projection)
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-void Rasterizer::drawTriangleMesh(Mesh *mesh)
+void Rasterizer::drawTriangleMesh(Mesh* mesh)
 { impl->drawTriangleMesh(mesh); }
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-void Rasterizer::drawLineMesh(Mesh *mesh)
+void Rasterizer::drawLineMesh(Mesh* mesh)
 { impl->drawLineMesh(mesh); }
 
 /* ---------------------------------------------------------------- *

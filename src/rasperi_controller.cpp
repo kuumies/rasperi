@@ -12,7 +12,9 @@ namespace kuu
 namespace rasperi
 {
 
-struct Sphere : public kuu::rasperi::Mesh
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+struct Sphere : public Mesh
 {
     Sphere(double radius, int ringCount, int sectorCount)
     {
@@ -66,7 +68,9 @@ struct Sphere : public kuu::rasperi::Mesh
     }
 };
 
-struct Quad : public kuu::rasperi::Mesh
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+struct Quad : public Mesh
 {
     Quad()
     {
@@ -76,7 +80,6 @@ struct Quad : public kuu::rasperi::Mesh
         v1.position.x = -1;
         v1.position.y = -1;
         v1.color.r = 1.0;
-        //v1.normal = glm::normalize(v1.position - glm::dvec3(0.0));
         v1.normal.z = 1;
 
         kuu::rasperi::Vertex v2;
@@ -123,6 +126,8 @@ struct Controller::Impl
         : self(self)
     {}
 
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
     void render(int w, int h)
     {
         Vertex v1, v2;
@@ -149,11 +154,7 @@ struct Controller::Impl
         r.drawTriangleMesh(&q);
 
         ColorFramebuffer colorFramebuffer = r.colorFramebuffer();
-        image = QImage(colorFramebuffer.data.get()->data(),
-                       colorFramebuffer.width,
-                       colorFramebuffer.height,
-                       QImage::Format_ARGB32).copy();
-        image = image.rgbSwapped();
+        image = colorFramebuffer.toQImage();
     }
 
     Controller* self = nullptr;
@@ -171,6 +172,7 @@ Controller::Controller()
  * ---------------------------------------------------------------- */
 void Controller::showUi()
 {
+    impl->imageWidget.setWindowTitle("Rasperi");
     impl->imageWidget.resize(720, 576);
     impl->imageWidget.show();
     impl->render(720, 576);

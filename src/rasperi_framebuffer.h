@@ -11,6 +11,7 @@
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
+#include <QtGui/QImage>
 
 namespace kuu
 {
@@ -76,6 +77,19 @@ public:
      * ------------------------------------------------------------ */
     std::size_t size() const
     { return std::size_t(width * height * channels); }
+
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
+    QImage toQImage() const
+    {
+        if (channels != 4)
+            return QImage();
+
+        QImage out = QImage(data.get()->data(),
+                            width, height,
+                            QImage::Format_ARGB32).copy();
+        return out.rgbSwapped();
+    }
 
     int width;
     int height;
