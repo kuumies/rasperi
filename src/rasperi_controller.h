@@ -18,6 +18,7 @@ class Controller
 {
 public:
     Controller();
+    void showUi();
 
 private:
     struct Impl;

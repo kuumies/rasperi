@@ -1,30 +1,29 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The definition of kuu::rasperi::MainWindow class.
+   Definition of kuu::rasperi::ImageWidget class.
  * ---------------------------------------------------------------- */
 
-#include <memory>
-#include <QtWidgets/QMainWindow>
+#pragma once
 
-namespace Ui { class MainWindow; }
+#include <QtWidgets/QWidget>
 
 namespace kuu
 {
 namespace rasperi
 {
 
-class Controller;
-
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-class MainWindow : public QMainWindow
+class ImageWidget : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit MainWindow(
-        Controller* controller,
-        QWidget* parent = nullptr);
+    explicit ImageWidget(QWidget* parent = nullptr);
+    void setImage(const QImage& image);
+
+protected:
+    void paintEvent(QPaintEvent* e) override;
 
 private:
     struct Impl;

@@ -1,19 +1,15 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The implementation of types of kuu::rasperi::Rasterizer class.
+   The implementation of types of kuu::rasperi::Mesh class.
  * ---------------------------------------------------------------- */
  
-#include "rasperi_rasterizer_types.h"
+#include "rasperi_mesh.h"
 
 namespace kuu
 {
 namespace rasperi
 {
-namespace rasterizer
-{
 
 
-
-} // namespace rasterizer
 } // namespace rasperi
 } // namespace kuu

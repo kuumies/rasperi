@@ -1,19 +1,18 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The definition of kuu::rasperi::rasterizer::Rasterizer class.
+   The definition of kuu::rasperi::Rasterizer class.
  * ---------------------------------------------------------------- */
  
 #pragma once
 
 #include <memory>
 #include <glm/mat4x4.hpp>
-#include "rasperi_rasterizer_types.h"
+#include "rasperi_framebuffer.h"
+#include "rasperi_mesh.h"
 
 namespace kuu
 {
 namespace rasperi
-{
-namespace rasterizer
 {
 
 /* ---------------------------------------------------------------- *
@@ -44,6 +43,5 @@ private:
     std::shared_ptr<Impl> impl;
 };
 
-} // namespace rasterizer
 } // namespace rasperi
 } // namespace kuu

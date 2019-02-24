@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The definition of types of kuu::rasperi::Rasterizer class.
+   The definition of types of kuu::rasperi::Framebuffer class.
  * ---------------------------------------------------------------- */
  
 #pragma once
@@ -16,35 +16,6 @@ namespace kuu
 {
 namespace rasperi
 {
-namespace rasterizer
-{
-
-/* ---------------------------------------------------------------- *
- * ---------------------------------------------------------------- */
-struct Vertex
-{
-    glm::dvec3 position;
-    glm::dvec2 texCoord;
-    glm::dvec3 normal;
-    glm::dvec4 color;
-};
-
-/* ---------------------------------------------------------------- *
- * ---------------------------------------------------------------- */
-struct Triangle
-{
-    Vertex p1;
-    Vertex p2;
-    Vertex p3;
-};
-
-/* ---------------------------------------------------------------- *
- * ---------------------------------------------------------------- */
-struct Mesh
-{
-    std::vector<unsigned> indices;
-    std::vector<Vertex> vertices;
-};
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
@@ -115,7 +86,5 @@ public:
 using DepthFramebuffer = Framebuffer<double>;
 using ColorFramebuffer = Framebuffer<unsigned char>;
 
-
-} // namespace rasterizer
 } // namespace rasperi
 } // namespace kuu
