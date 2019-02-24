@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The definition of kuu::wakusei::rasterizer::Rasterizer class.
+   The definition of kuu::rasperi::rasterizer::Rasterizer class.
  * ---------------------------------------------------------------- */
  
 #pragma once
@@ -11,7 +11,7 @@
 
 namespace kuu
 {
-namespace wakusei
+namespace rasperi
 {
 namespace rasterizer
 {
@@ -45,5 +45,5 @@ private:
 };
 
 } // namespace rasterizer
-} // namespace wakusei
+} // namespace rasperi
 } // namespace kuu

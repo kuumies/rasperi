@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The definition of types of kuu::wakusei::Rasterizer class.
+   The definition of types of kuu::rasperi::Rasterizer class.
  * ---------------------------------------------------------------- */
  
 #pragma once
@@ -14,7 +14,7 @@
 
 namespace kuu
 {
-namespace wakusei
+namespace rasperi
 {
 namespace rasterizer
 {
@@ -117,5 +117,5 @@ using ColorFramebuffer = Framebuffer<unsigned char>;
 
 
 } // namespace rasterizer
-} // namespace wakusei
+} // namespace rasperi
 } // namespace kuu

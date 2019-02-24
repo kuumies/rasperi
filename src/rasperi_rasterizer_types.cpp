@@ -1,13 +1,13 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The implementation of types of kuu::wakusei::Rasterizer class.
+   The implementation of types of kuu::rasperi::Rasterizer class.
  * ---------------------------------------------------------------- */
  
 #include "rasperi_rasterizer_types.h"
 
 namespace kuu
 {
-namespace wakusei
+namespace rasperi
 {
 namespace rasterizer
 {
@@ -15,5 +15,5 @@ namespace rasterizer
 
 
 } // namespace rasterizer
-} // namespace wakusei
+} // namespace rasperi
 } // namespace kuu

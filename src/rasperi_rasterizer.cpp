@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The implementation of kuu::wakusei::rasterizer::Rasterizer class.
+   The implementation of kuu::rasperi::rasterizer::Rasterizer class.
  * ---------------------------------------------------------------- */
  
 #include "rasperi_rasterizer.h"
@@ -14,7 +14,7 @@
 
 namespace kuu
 {
-namespace wakusei
+namespace rasperi
 {
 namespace rasterizer
 {
@@ -520,5 +520,5 @@ DepthFramebuffer Rasterizer::depthFramebuffer() const
 
 
 } // namespace rasterizer
-} // namespace wakusei
+} // namespace rasperi
 } // namespace kuu

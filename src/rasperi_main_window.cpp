@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The implementation of kuu::wakusei::MainWindow class.
+   The implementation of kuu::rasperi::MainWindow class.
  * ---------------------------------------------------------------- */
 
 #include "rasperi_main_window.h"
@@ -9,7 +9,7 @@
 
 namespace kuu
 {
-namespace wakusei
+namespace rasperi
 {
 
 /* ---------------------------------------------------------------- *
@@ -40,5 +40,5 @@ MainWindow::MainWindow(Controller* controller, QWidget* parent)
     impl->createCentralWidget();
 }
 
-} // namespace wakusei
+} // namespace rasperi
 } // namespace kuu

@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   Definition of kuu::wakusei::Controller class.
+   Definition of kuu::rasperi::Controller class.
  * ---------------------------------------------------------------- */
 
 #pragma once
@@ -9,7 +9,7 @@
 
 namespace kuu
 {
-namespace wakusei
+namespace rasperi
 {
 
 /* ---------------------------------------------------------------- *
@@ -24,5 +24,5 @@ private:
     std::shared_ptr<Impl> impl;
 };
 
-} // namespace wakusei
+} // namespace rasperi
 } // namespace kuu

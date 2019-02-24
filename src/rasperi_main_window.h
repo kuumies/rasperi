@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The definition of kuu::wakusei::MainWindow class.
+   The definition of kuu::rasperi::MainWindow class.
  * ---------------------------------------------------------------- */
 
 #include <memory>
@@ -10,7 +10,7 @@ namespace Ui { class MainWindow; }
 
 namespace kuu
 {
-namespace wakusei
+namespace rasperi
 {
 
 class Controller;
@@ -31,5 +31,5 @@ private:
     std::shared_ptr<Impl> impl;
 };
 
-} // namespace wakusei
+} // namespace rasperi
 } // namespace kuu

@@ -9,7 +9,7 @@
 #include "rasperi_main_window.h"
 #include "rasperi_rasterizer.h"
 
-struct Sphere : public kuu::wakusei::rasterizer::Mesh
+struct Sphere : public kuu::rasperi::rasterizer::Mesh
 {
     Sphere(double radius, int ringCount, int sectorCount)
     {
@@ -33,7 +33,7 @@ struct Sphere : public kuu::wakusei::rasterizer::Mesh
             dvec3 normal = normalize(pos - dvec3(0.0));
             dvec4 color = dvec4(1.0);
 
-            kuu::wakusei::rasterizer::Vertex v;
+            kuu::rasperi::rasterizer::Vertex v;
             v.position = pos;
             v.texCoord = texCoord;
             v.normal   = normal;
@@ -63,32 +63,32 @@ struct Sphere : public kuu::wakusei::rasterizer::Mesh
     }
 };
 
-struct Quad : public kuu::wakusei::rasterizer::Mesh
+struct Quad : public kuu::rasperi::rasterizer::Mesh
 {
     Quad()
     {
         using namespace glm;
 
-        kuu::wakusei::rasterizer::Vertex v1;
+        kuu::rasperi::rasterizer::Vertex v1;
         v1.position.x = -1;
         v1.position.y = -1;
         v1.color.r = 1.0;
         //v1.normal = glm::normalize(v1.position - glm::dvec3(0.0));
         v1.normal.z = 1;
 
-        kuu::wakusei::rasterizer::Vertex v2;
+        kuu::rasperi::rasterizer::Vertex v2;
         v2.position.x =  1;
         v2.position.y = -1;
         v2.normal.z = 1;
         v2.color.g = 1.0;
 
-        kuu::wakusei::rasterizer::Vertex v3;
+        kuu::rasperi::rasterizer::Vertex v3;
         v3.position.x =  1;
         v3.position.y =  1;
         v3.normal.z = 1;
         v3.color.b = 1.0;
 
-        kuu::wakusei::rasterizer::Vertex v4;
+        kuu::rasperi::rasterizer::Vertex v4;
         v4.position.x = -1;
         v4.position.y =  1;
         v4.normal.z = 1;
@@ -115,7 +115,7 @@ struct Quad : public kuu::wakusei::rasterizer::Mesh
 int main(int argc, char** argv)
 {
     using namespace kuu;
-    using namespace kuu::wakusei;
+    using namespace kuu::rasperi;
 
     QApplication app(argc, argv);
 

@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   Implementation of kuu::wakusei::Controller class.
+   Implementation of kuu::rasperi::Controller class.
  * ---------------------------------------------------------------- */
 
 #include "rasperi_controller.h"
@@ -12,7 +12,7 @@
 
 namespace kuu
 {
-namespace wakusei
+namespace rasperi
 {
 
 
@@ -35,5 +35,5 @@ Controller::Controller()
     : impl(std::make_shared<Impl>(this))
 {}
 
-} // namespace wakusei
+} // namespace rasperi
 } // namespace kuu
