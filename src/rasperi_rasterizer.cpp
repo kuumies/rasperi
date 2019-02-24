@@ -98,6 +98,11 @@ void Rasterizer::setProjectionMatrix(const glm::dmat4& projection)
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
+void Rasterizer::setNormalMode(Rasterizer::NormalMode normalMode)
+{ impl->normalMode = normalMode; }
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
 void Rasterizer::drawTriangleMesh(Mesh* mesh)
 { impl->drawTriangleMesh(mesh); }
 

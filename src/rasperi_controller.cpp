@@ -149,6 +149,7 @@ struct Controller::Impl
 
         Rasterizer r(w, h);
         r.clear();
+        r.setNormalMode(Rasterizer::NormalMode::Coarse);
         r.drawTriangleMesh(&sphere);
         r.drawLineMesh(&line);
         r.drawTriangleMesh(&q);

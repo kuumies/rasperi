@@ -32,6 +32,7 @@ public:
     void clear();
     void setViewMatrix(const glm::dmat4& view);
     void setProjectionMatrix(const glm::dmat4& projection);
+    void setNormalMode(NormalMode normalMode);
     void drawTriangleMesh(Mesh* mesh);
     void drawLineMesh(Mesh* mesh);
 

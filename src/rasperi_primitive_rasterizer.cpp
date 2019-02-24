@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The implementation of types of kuu::rasperi::PrimitiveRasterizer class.
+   The implementation of kuu::rasperi::PrimitiveRasterizer class.
  * ---------------------------------------------------------------- */
  
 #include "rasperi_primitive_rasterizer.h"
