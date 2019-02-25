@@ -82,6 +82,7 @@ add_executable(
 target_link_libraries(
     ${PROJECT_NAME}
     ${QT_LIBRARIES}
+    ${ASSIMP_LIBRARIES}
 )
 
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)

@@ -9,6 +9,7 @@
 #include <glm/mat4x4.hpp>
 #include "rasperi_framebuffer.h"
 #include "rasperi_mesh.h"
+#include "rasperi_material.h"
 
 namespace kuu
 {
@@ -32,6 +33,7 @@ public:
     void clear();
     void setViewMatrix(const glm::dmat4& view);
     void setProjectionMatrix(const glm::dmat4& projection);
+    void setMaterial(const Material& material);
     void setNormalMode(NormalMode normalMode);
     void drawTriangleMesh(Mesh* mesh);
     void drawLineMesh(Mesh* mesh);

@@ -6,6 +6,7 @@
 #include "rasperi_primitive_rasterizer.h"
 #include <QtCore/QDebug>
 #include <QtCore/QTime>
+#include "rasperi_material.h"
 #include "rasperi_sampler.h"
 
 namespace kuu
@@ -54,7 +55,9 @@ struct TrianglePrimitiveRasterizer::Impl
     void rasterize(const Triangle& tri,
                    const glm::dmat4& matrix,
                    const glm::dmat3& normalMatrix,
-                   const glm::dvec3& lightDir)
+                   const glm::dvec3& lightDir,
+                   const glm::dvec3& cameraPos,
+                   const Material& material)
     {
         const glm::dvec3 n =
             glm::normalize(glm::cross(tri.p2.position - tri.p1.position,
@@ -124,8 +127,12 @@ struct TrianglePrimitiveRasterizer::Impl
                 normal = n;
             normal = glm::normalize(normal);
 
-            double nDotL = glm::dot(normal, -lightDir);
-            nDotL = glm::clamp(nDotL, 0.0, 1.0);
+            glm::dvec3 vp1  = tri.p1.position / p1.z;
+            glm::dvec3 vp2  = tri.p2.position / p2.z;
+            glm::dvec3 vp3  = tri.p3.position / p3.z;
+            glm::dvec3 vp   = vp1  * w1 * z +
+                              vp2  * w2 * z +
+                              vp3  * w3 * z;
 
             glm::dvec4 c1  = tri.p1.color / p1.z;
             glm::dvec4 c2  = tri.p2.color / p2.z;
@@ -141,10 +148,28 @@ struct TrianglePrimitiveRasterizer::Impl
                             tc2  * w2 * z +
                             tc3  * w3 * z;
 
-            if (sampler)
-                color = sampler->sampleRgba(tc);
-            color *= nDotL;
-            color.a = 1.0;
+            glm::dvec3 v = glm::normalize(cameraPos - vp);
+            glm::dvec3 r = glm::reflect(-lightDir, normal);
+
+            double nDotL = glm::dot(normal, -lightDir);
+            nDotL = glm::clamp(nDotL, 0.0, 1.0);
+
+            double vDotR = glm::dot(v, r);
+            vDotR = glm::clamp(vDotR, 0.0, 1.0);
+
+            glm::dvec3 ambient = material.ambient;
+            if (material.ambientSampler.isValid())
+                ambient = material.ambientSampler.sampleRgba(tc);
+            glm::dvec3 diffuse = material.diffuse;
+            if (material.diffuseSampler.isValid())
+                diffuse = material.diffuseSampler.sampleRgba(tc);
+
+            glm::dvec3 lightIntensity(1.0, 1.0, 1.0);
+
+            double spec = std::pow(vDotR, 32);
+            glm::dvec3 specular = material.specularPower* spec * lightIntensity;
+
+            color = glm::dvec4(ambient + diffuse * nDotL + specular, 1.0);
 
             self->setRgba(x, y, color);
         }
@@ -163,7 +188,6 @@ struct TrianglePrimitiveRasterizer::Impl
     }
 
     TrianglePrimitiveRasterizer* self;
-    std::unique_ptr<Sampler> sampler;
     Rasterizer::NormalMode normalMode;
 };
 
@@ -183,14 +207,12 @@ void TrianglePrimitiveRasterizer::rasterize(
         const Mesh& triangleMesh,
         const glm::dmat4& matrix,
         const glm::dmat3& normalMatrix,
-        const glm::dvec3& lightDir)
+        const glm::dvec3& lightDir,
+        const glm::dvec3& cameraPos,
+        const Material& material)
 {
     QTime timer;
     timer.start();
-
-    impl->sampler.reset();
-    //if (!triangleMesh.albedoMap.empty())
-    //    sampler = std::make_unique<Sampler>(QImage(QString::fromStdString(triangleMesh.albedoMap)));
 
     for (size_t i = 0; i < triangleMesh.indices.size(); i += 3)
     {
@@ -202,7 +224,7 @@ void TrianglePrimitiveRasterizer::rasterize(
         tri.p2 = triangleMesh.vertices[i2];
         tri.p3 = triangleMesh.vertices[i3];
 
-        impl->rasterize(tri, matrix, normalMatrix, lightDir);
+        impl->rasterize(tri, matrix, normalMatrix, lightDir, cameraPos, material);
     }
 
     qDebug() << __FUNCTION__ << timer.elapsed() << "ms";

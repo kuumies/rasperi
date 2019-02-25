@@ -26,9 +26,15 @@ public:
         Linear
     };
 
+    Sampler();
     Sampler(const QImage& map,
             Filter filter = Filter::Nearest,
             bool linearizeGamma = false);
+
+    bool isValid() const;
+
+    void setMap(const QImage& map);
+    QImage map() const;
 
     void setFilter(Filter filter);
     Filter filter() const;

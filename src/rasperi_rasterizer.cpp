@@ -28,6 +28,8 @@ struct Rasterizer::Impl
         view = glm::translate(glm::dmat4(1.0), glm::dvec3(0, 0, 3.0));
         projection = glm::perspective(M_PI * 0.25, width / double(height), 0.1, 150.0);
         lightDir = glm::dvec3(0, 0, -1);
+        material.diffuse = glm::dvec3(1.0);
+        material.diffuseFromVertex = false;
         updateMatrices();
     }
 
@@ -44,6 +46,7 @@ struct Rasterizer::Impl
     void updateMatrices()
     {
         const glm::dmat4 viewInv = glm::inverse(view);
+        cameraPos = glm::dvec3(viewInv * glm::dvec4(0.0, 0.0, 0.0, 1.0));
         cameraMatrix = projection * viewInv;
         normalMatrix = glm::inverseTranspose(glm::dmat3(viewInv));
     }
@@ -53,7 +56,7 @@ struct Rasterizer::Impl
     void drawTriangleMesh(Mesh* mesh)
     {
         TrianglePrimitiveRasterizer triRast(colorFramebuffer, depthFramebuffer, normalMode);
-        triRast.rasterize(*mesh, cameraMatrix, normalMatrix, lightDir);
+        triRast.rasterize(*mesh, cameraMatrix, normalMatrix, lightDir, cameraPos, material);
     }
 
     /* ------------------------------------------------------------ *
@@ -73,6 +76,8 @@ struct Rasterizer::Impl
     glm::dmat3 normalMatrix;
     std::vector<Mesh*> meshes;
     glm::dvec3 lightDir;
+    glm::dvec3 cameraPos;
+    Material material;
 };
 
 /* ---------------------------------------------------------------- *
@@ -89,12 +94,23 @@ void Rasterizer::clear()
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
 void Rasterizer::setViewMatrix(const glm::dmat4& view)
-{ impl->view = view; }
+{
+    impl->view = view;
+    impl->updateMatrices();
+}
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
 void Rasterizer::setProjectionMatrix(const glm::dmat4& projection)
-{ impl->projection = projection; }
+{
+    impl->projection = projection;
+    impl->updateMatrices();
+}
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+void Rasterizer::setMaterial(const Material& material)
+{ impl->material = material; }
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */

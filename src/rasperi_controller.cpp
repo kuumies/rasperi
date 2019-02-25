@@ -4,8 +4,10 @@
  * ---------------------------------------------------------------- */
 
 #include "rasperi_controller.h"
+#include <QtCore/QDebug>
 #include "rasperi_image_widget.h"
 #include "rasperi_main_window.h"
+#include "rasperi_model_importer.h"
 #include "rasperi_rasterizer.h"
 
 namespace kuu
@@ -123,6 +125,34 @@ struct Controller::Impl
 {
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
+    class BoundingBox
+    {
+    public:
+        BoundingBox()
+        {
+            min.x =  std::numeric_limits<int>::max();
+            min.y =  std::numeric_limits<int>::max();
+            min.z =  std::numeric_limits<int>::max();
+            max.x = -std::numeric_limits<int>::max();
+            max.y = -std::numeric_limits<int>::max();
+            max.z = -std::numeric_limits<int>::max();
+        }
+        void update(const glm::dvec3& p)
+        {
+            if (p.x < min.x) min.x = p.x;
+            if (p.y < min.y) min.y = p.y;
+            if (p.z < min.z) min.z = p.z;
+            if (p.x > max.x) max.x = p.x;
+            if (p.y > max.y) max.y = p.y;
+            if (p.z > max.z) max.z = p.z;
+        }
+
+        glm::dvec3 min;
+        glm::dvec3 max;
+    };
+
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
     Impl(Controller* self)
         : self(self)
         , mainWindow(self)
@@ -130,7 +160,7 @@ struct Controller::Impl
 
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
-    void render(int w, int h)
+    void renderDefaultScene(int w, int h)
     {
         Vertex v1, v2;
         v1.position.x = -4.0;
@@ -160,6 +190,39 @@ struct Controller::Impl
         image = colorFramebuffer.toQImage();
     }
 
+    void renderModels(int w, int h,
+                      std::vector<ModelImporter::Model>& models)
+    {
+        BoundingBox bb;
+        for (const ModelImporter::Model& model : models)
+            for (const Vertex& v : model.mesh->vertices)
+                bb.update(v.position);
+
+        //qDebug() << bb.min.z << bb.max.z;
+        double zDepth = 0.0;
+        zDepth = std::max(zDepth, std::abs(bb.min.z) + std::abs(bb.max.z));
+        zDepth = std::max(zDepth, std::abs(bb.min.y) + std::abs(bb.max.y));
+        zDepth = std::max(zDepth, std::abs(bb.min.x) + std::abs(bb.max.x));
+        glm::dvec3 center = (bb.max - bb.min) * 0.5;
+
+        glm::dmat4 view = glm::translate(glm::dmat4(1.0), glm::dvec3(0.0, center.y, zDepth * 1.4));
+        glm::dmat4 proj = glm::perspective(M_PI * 0.25, w / double(h), 0.1, zDepth * 2);
+
+        Rasterizer r(w, h);
+        r.clear();
+        r.setViewMatrix(view);
+        r.setProjectionMatrix(proj);
+        r.setNormalMode(Rasterizer::NormalMode::Coarse);
+        for (ModelImporter::Model& model : models)
+        {
+            r.setMaterial(*model.material);
+            r.drawTriangleMesh(model.mesh.get());
+        }
+
+        ColorFramebuffer colorFramebuffer = r.colorFramebuffer();
+        image = colorFramebuffer.toQImage();
+    }
+
     Controller* self = nullptr;
     QImage image;
     MainWindow mainWindow;
@@ -177,20 +240,25 @@ Controller::Controller()
 void Controller::showUi()
 {
     impl->mainWindow.setWindowTitle("Rasperi");
-    impl->imageWidget.resize(720, 576);
-    impl->render(720, 576);
+    impl->renderDefaultScene(720, 576);
     impl->imageWidget.setImage(impl->image);
     impl->mainWindow.setCentralWidget(&impl->imageWidget);
     impl->mainWindow.showMaximized();
-
 }
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
 bool Controller::importModel(const QString& filepath)
 {
-    // TODO
-    return false;
+    std::vector<ModelImporter::Model> models =
+        ModelImporter().import(filepath);
+    if (models.empty())
+        return false;
+
+    impl->renderModels(impl->imageWidget.width(), impl->imageWidget.height(), models);
+    impl->imageWidget.setImage(impl->image);
+
+    return true;
 }
 
 /* ---------------------------------------------------------------- *

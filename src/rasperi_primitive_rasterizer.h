@@ -9,6 +9,7 @@
 #include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
 #include "rasperi_framebuffer.h"
+#include "rasperi_material.h"
 #include "rasperi_mesh.h"
 #include "rasperi_rasterizer.h"
 
@@ -62,7 +63,9 @@ public:
     void rasterize(const Mesh& triangleMesh,
                    const glm::dmat4& matrix,
                    const glm::dmat3& normalMatrix,
-                   const glm::dvec3& lightDir);
+                   const glm::dvec3& lightDir,
+                   const glm::dvec3& cameraPos,
+                   const Material& material);
 
 private:
     struct Impl;
