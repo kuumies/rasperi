@@ -4,7 +4,7 @@ Kd 0.00 0.00 0.00
 Ka 0.00 0.00 0.00
 Tf 1.00 1.00 1.00
 map_Kd Muro_body_dm.tga
-bump Muro_body_nm.tga -bm 1
+map_Bump Muro_body_nm.tga
 Ni 1.00
 Ks 0.00 0.00 0.00
 map_Ks Muro_body_sm.tga
@@ -14,7 +14,7 @@ Kd 0.00 0.00 0.00
 Ka 0.00 0.00 0.00
 Tf 1.00 1.00 1.00
 map_Kd Muro_head_dm.tga
-bump Muro_head_nm.tga -bm 1
+map_Bump Muro_head_nm.tga
 Ni 1.00
 Ks 0.00 0.00 0.00
 map_Ks Muro_head_sm.tga

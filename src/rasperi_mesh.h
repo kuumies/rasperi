@@ -24,6 +24,8 @@ struct Vertex
     glm::dvec3 position;
     glm::dvec2 texCoord;
     glm::dvec3 normal;
+    glm::dvec3 tangent;
+    glm::dvec3 bitangent;
     glm::dvec4 color;
 };
 

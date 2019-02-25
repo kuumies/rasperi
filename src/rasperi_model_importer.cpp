@@ -69,6 +69,28 @@ struct ModelImporter::Impl
                 vertex.normal.z = double(n->z);
             }
 
+            if (mesh->HasTangentsAndBitangents())
+            {
+                const aiVector3D* t = &mesh->mTangents[v];
+                vertex.tangent.x = double(t->x);
+                vertex.tangent.y = double(t->y);
+                vertex.tangent.z = double(t->z);
+
+                const aiVector3D* b = &mesh->mBitangents[v];
+                vertex.bitangent.x = double(b->x);
+                vertex.bitangent.y = double(b->y);
+                vertex.bitangent.z = double(b->z);
+            }
+
+            if (mesh->HasVertexColors(0))
+            {
+                const aiColor4D* c = &mesh->mColors[0][v];
+                vertex.color.r = double(c->r);
+                vertex.color.g = double(c->g);
+                vertex.color.b = double(c->b);
+                vertex.color.a = double(c->a);
+            }
+
             out->vertices.push_back(vertex);
         }
 
@@ -137,14 +159,15 @@ struct ModelImporter::Impl
         out->diffuseSampler.setMap(loadTexture(material, aiTextureType_DIFFUSE, dir));
         out->specularSampler.setMap(loadTexture(material, aiTextureType_SPECULAR, dir));
         out->specularPowerSampler.setMap(loadTexture(material, aiTextureType_SHININESS, dir));
-        out->normalSampler.setMap(loadTexture(material, aiTextureType_NORMALS, dir));
+        out->normalSampler.setMap(loadTexture(material, aiTextureType_HEIGHT, dir)); // Note "typo", it really needs to be aiTextureType_HEIGHT for OBJs
 
         qDebug() << __FUNCTION__
                  << material->GetTextureCount(aiTextureType_AMBIENT)
                  << material->GetTextureCount(aiTextureType_DIFFUSE)
                  << material->GetTextureCount(aiTextureType_SPECULAR)
                  << material->GetTextureCount(aiTextureType_SHININESS)
-                 << material->GetTextureCount(aiTextureType_NORMALS);
+                 << material->GetTextureCount(aiTextureType_NORMALS)
+                 << material->GetTextureCount(aiTextureType_HEIGHT);
 
         return out;
     }
@@ -205,7 +228,8 @@ std::vector<ModelImporter::Model> ModelImporter::import(const QString& filepath)
         importer.ReadFile(
             filepath.toStdString().c_str(),
             aiProcess_Triangulate |
-            aiProcess_JoinIdenticalVertices);
+            aiProcess_JoinIdenticalVertices |
+            aiProcess_CalcTangentSpace);
 
     if (!scene)
         return {};

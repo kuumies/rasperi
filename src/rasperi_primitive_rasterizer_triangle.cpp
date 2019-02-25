@@ -59,7 +59,7 @@ struct TrianglePrimitiveRasterizer::Impl
                    const glm::dvec3& cameraPos,
                    const Material& material)
     {
-        const glm::dvec3 n =
+        const glm::dvec3 triNormal =
             glm::normalize(glm::cross(tri.p2.position - tri.p1.position,
                                       tri.p3.position - tri.p1.position));
 
@@ -117,15 +117,6 @@ struct TrianglePrimitiveRasterizer::Impl
                 continue;
             self->depthbuffer.set(x, y, 0, z);
 
-            glm::dvec3 n1  = glm::normalize((normalMatrix * tri.p1.normal) / p1.z);
-            glm::dvec3 n2  = glm::normalize((normalMatrix * tri.p2.normal) / p2.z);
-            glm::dvec3 n3  = glm::normalize((normalMatrix * tri.p3.normal) / p3.z);
-            glm::dvec3 normal   = n1  * w1 * z +
-                                  n2  * w2 * z +
-                                  n3  * w3 * z;
-            if (normalMode == Rasterizer::NormalMode::Coarse)
-                normal = n;
-            normal = glm::normalize(normal);
 
             glm::dvec3 vp1  = tri.p1.position / p1.z;
             glm::dvec3 vp2  = tri.p2.position / p2.z;
@@ -148,10 +139,50 @@ struct TrianglePrimitiveRasterizer::Impl
                             tc2  * w2 * z +
                             tc3  * w3 * z;
 
-            glm::dvec3 v = glm::normalize(cameraPos - vp);
-            glm::dvec3 r = glm::reflect(-lightDir, normal);
+            glm::dvec3 n1  = glm::normalize((normalMatrix * tri.p1.normal) / p1.z);
+            glm::dvec3 n2  = glm::normalize((normalMatrix * tri.p2.normal) / p2.z);
+            glm::dvec3 n3  = glm::normalize((normalMatrix * tri.p3.normal) / p3.z);
+            glm::dvec3 n   = n1  * w1 * z +
+                             n2  * w2 * z +
+                             n3  * w3 * z;
 
-            double nDotL = glm::dot(normal, -lightDir);
+            if (normalMode == Rasterizer::NormalMode::Coarse)
+                n = triNormal;
+            n = glm::normalize(n);
+
+            if (material.normalSampler.isValid())
+            {
+                glm::dvec3 t1  = tri.p1.tangent / p1.z;
+                glm::dvec3 t2  = tri.p2.tangent / p2.z;
+                glm::dvec3 t3  = tri.p3.tangent / p3.z;
+                glm::dvec3 t   = t1  * w1 * z +
+                                 t2  * w2 * z +
+                                 t3  * w3 * z;
+
+                glm::dvec3 b1  = tri.p1.bitangent / p1.z;
+                glm::dvec3 b2  = tri.p2.bitangent / p2.z;
+                glm::dvec3 b3  = tri.p3.bitangent / p3.z;
+                glm::dvec3 b   = b1  * w1 * z +
+                                 b2  * w2 * z +
+                                 b3  * w3 * z;
+
+                // re-orthogonalize T with respect to N
+                t = normalize(t - dot(t, n) * n);
+                b = cross(n, t);
+
+                glm::dmat3 tbn = glm::dmat3(t, b, n);
+
+                n = material.normalSampler.sampleRgba(tc);
+                n = normalize(n * 2.0 - 1.0);
+                n = tbn * n;
+                n = normalize(n);
+            }
+
+            glm::dvec3 l = -lightDir;
+            glm::dvec3 v = glm::normalize(cameraPos - vp);
+            glm::dvec3 r = glm::reflect(l, n);
+
+            double nDotL = glm::dot(n, l);
             nDotL = glm::clamp(nDotL, 0.0, 1.0);
 
             double vDotR = glm::dot(v, r);
@@ -219,6 +250,13 @@ void TrianglePrimitiveRasterizer::rasterize(
         unsigned i1 = triangleMesh.indices[i + 0];
         unsigned i2 = triangleMesh.indices[i + 1];
         unsigned i3 = triangleMesh.indices[i + 2];
+        if (i1 >= triangleMesh.vertices.size() ||
+            i2 >= triangleMesh.vertices.size() ||
+            i3 >= triangleMesh.vertices.size())
+        {
+            continue;
+        }
+
         Triangle tri;
         tri.p1 = triangleMesh.vertices[i1];
         tri.p2 = triangleMesh.vertices[i2];
