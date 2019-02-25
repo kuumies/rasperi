@@ -35,10 +35,12 @@ endif(BUILD_TYPE STREQUAL "debug")
 
 set(CMAKE_MODULE_PATH
     ${CMAKE_MODULE_PATH}
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/assimp
     ${CMAKE_CURRENT_SOURCE_DIR}/external/glm
     ${CMAKE_CURRENT_SOURCE_DIR}/external/qt
 )
 
+include(add_assimp)
 include(add_glm)
 include(add_qt)
 
@@ -66,7 +68,6 @@ file(GLOB_RECURSE H_SOURCES       src/*.h)
 file(GLOB_RECURSE CPP_SOURCES     src/*.cpp)
 file(GLOB_RECURSE UI_SOURCES      src/*.ui)
 file(GLOB_RECURSE QRC_SOURCES     resource/*.qrc)
-file(GLOB_RECURSE TEXTURE_SOURCES resource/*.png)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 
@@ -84,5 +85,4 @@ target_link_libraries(
 )
 
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
-INSTALL(DIRECTORY resource/textures     DESTINATION bin)
-
+INSTALL(DIRECTORY resource/models   DESTINATION bin)

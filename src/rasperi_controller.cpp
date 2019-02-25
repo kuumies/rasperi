@@ -5,6 +5,7 @@
 
 #include "rasperi_controller.h"
 #include "rasperi_image_widget.h"
+#include "rasperi_main_window.h"
 #include "rasperi_rasterizer.h"
 
 namespace kuu
@@ -124,6 +125,7 @@ struct Controller::Impl
      * ------------------------------------------------------------ */
     Impl(Controller* self)
         : self(self)
+        , mainWindow(self)
     {}
 
     /* ------------------------------------------------------------ *
@@ -160,6 +162,7 @@ struct Controller::Impl
 
     Controller* self = nullptr;
     QImage image;
+    MainWindow mainWindow;
     ImageWidget imageWidget;
 };
 
@@ -173,12 +176,27 @@ Controller::Controller()
  * ---------------------------------------------------------------- */
 void Controller::showUi()
 {
-    impl->imageWidget.setWindowTitle("Rasperi");
+    impl->mainWindow.setWindowTitle("Rasperi");
     impl->imageWidget.resize(720, 576);
-    impl->imageWidget.show();
     impl->render(720, 576);
     impl->imageWidget.setImage(impl->image);
+    impl->mainWindow.setCentralWidget(&impl->imageWidget);
+    impl->mainWindow.showMaximized();
+
 }
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+bool Controller::importModel(const QString& filepath)
+{
+    // TODO
+    return false;
+}
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+bool Controller::saveImage(const QString& filepath)
+{ return impl->image.save(filepath); }
 
 } // namespace rasperi
 } // namespace kuu

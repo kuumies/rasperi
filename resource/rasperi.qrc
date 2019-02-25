@@ -1,3 +1,5 @@
 <RCC>
-    <qresource prefix="/"/>
+    <qresource prefix="/">
+        <file>icons/resource_usage_protect.png</file>
+    </qresource>
 </RCC>

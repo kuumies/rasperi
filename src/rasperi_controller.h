@@ -6,6 +6,7 @@
 #pragma once
 
 #include <memory>
+#include <QtCore/QString>
 
 namespace kuu
 {
@@ -19,6 +20,8 @@ class Controller
 public:
     Controller();
     void showUi();
+    bool importModel(const QString& filepath);
+    bool saveImage(const QString& filepath);
 
 private:
     struct Impl;
