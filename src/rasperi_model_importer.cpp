@@ -221,7 +221,7 @@ ModelImporter::ModelImporter()
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-std::vector<ModelImporter::Model> ModelImporter::import(const QString& filepath) const
+std::vector<Model> ModelImporter::import(const QString& filepath) const
 {
     Assimp::Importer importer;
     const aiScene* scene =

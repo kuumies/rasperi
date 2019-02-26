@@ -25,13 +25,24 @@ PrimitiveRasterizer::~PrimitiveRasterizer()
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-glm::dvec3 PrimitiveRasterizer::project(const glm::dmat4& m,
-                   const glm::dvec3& p)
+glm::dvec3 PrimitiveRasterizer::project(const glm::dmat4& m, const glm::dvec3& p)
 {
     const glm::dvec4 v = m * glm::dvec4(p, 1.0);
     if (v.w == 0.0)
+    {
+        std::cerr << "proj err" << std::endl;
         return glm::dvec3(0.0);
+    }
     return glm::dvec3(v.x / v.w, v.y / v.w, v.z / v.w);
+}
+
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+glm::dvec3 PrimitiveRasterizer::transform(const glm::dmat4& m,
+                                          const glm::dvec3& p)
+{
+    return m * glm::dvec4(p, 1.0);
 }
 
 /* ---------------------------------------------------------------- *

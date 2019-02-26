@@ -53,7 +53,8 @@ struct TrianglePrimitiveRasterizer::Impl
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
     void rasterize(const Triangle& tri,
-                   const glm::dmat4& matrix,
+                   const glm::dmat4& cameraMatrix,
+                   const glm::dmat4& modelMatrix,
                    const glm::dmat3& normalMatrix,
                    const glm::dvec3& lightDir,
                    const glm::dvec3& cameraPos,
@@ -64,9 +65,9 @@ struct TrianglePrimitiveRasterizer::Impl
                                       tri.p3.position - tri.p1.position));
 
         // Projection
-        glm::dvec3 p1 = self->project(matrix, tri.p1.position);
-        glm::dvec3 p2 = self->project(matrix, tri.p2.position);
-        glm::dvec3 p3 = self->project(matrix, tri.p3.position);
+        glm::dvec3 p1 = self->project(cameraMatrix, tri.p1.position);
+        glm::dvec3 p2 = self->project(cameraMatrix, tri.p2.position);
+        glm::dvec3 p3 = self->project(cameraMatrix, tri.p3.position);
 
         // Viewport transform
         glm::ivec2 vpP1 = self->viewportTransform(p1);
@@ -118,12 +119,12 @@ struct TrianglePrimitiveRasterizer::Impl
             self->depthbuffer.set(x, y, 0, z);
 
 
-            glm::dvec3 vp1  = tri.p1.position / p1.z;
-            glm::dvec3 vp2  = tri.p2.position / p2.z;
-            glm::dvec3 vp3  = tri.p3.position / p3.z;
-            glm::dvec3 vp   = vp1  * w1 * z +
-                              vp2  * w2 * z +
-                              vp3  * w3 * z;
+            glm::dvec3 vp1 = self->transform(modelMatrix, tri.p1.position) / p1.z;
+            glm::dvec3 vp2 = self->transform(modelMatrix, tri.p2.position) / p2.z;
+            glm::dvec3 vp3 = self->transform(modelMatrix, tri.p3.position) / p3.z;
+            glm::dvec3 vp  = vp1  * w1 * z +
+                             vp2  * w2 * z +
+                             vp3  * w3 * z;
 
             glm::dvec4 c1  = tri.p1.color / p1.z;
             glm::dvec4 c2  = tri.p2.color / p2.z;
@@ -152,16 +153,16 @@ struct TrianglePrimitiveRasterizer::Impl
 
             if (material.normalSampler.isValid())
             {
-                glm::dvec3 t1  = tri.p1.tangent / p1.z;
-                glm::dvec3 t2  = tri.p2.tangent / p2.z;
-                glm::dvec3 t3  = tri.p3.tangent / p3.z;
+                glm::dvec3 t1  =  glm::normalize(normalMatrix * tri.p1.tangent) / p1.z;
+                glm::dvec3 t2  =  glm::normalize(normalMatrix * tri.p2.tangent) / p2.z;
+                glm::dvec3 t3  =  glm::normalize(normalMatrix * tri.p3.tangent) / p3.z;
                 glm::dvec3 t   = t1  * w1 * z +
                                  t2  * w2 * z +
                                  t3  * w3 * z;
 
-                glm::dvec3 b1  = tri.p1.bitangent / p1.z;
-                glm::dvec3 b2  = tri.p2.bitangent / p2.z;
-                glm::dvec3 b3  = tri.p3.bitangent / p3.z;
+                glm::dvec3 b1  =  glm::normalize(normalMatrix * tri.p1.bitangent) / p1.z;
+                glm::dvec3 b2  =  glm::normalize(normalMatrix * tri.p2.bitangent) / p2.z;
+                glm::dvec3 b3  =  glm::normalize(normalMatrix * tri.p3.bitangent) / p3.z;
                 glm::dvec3 b   = b1  * w1 * z +
                                  b2  * w2 * z +
                                  b3  * w3 * z;
@@ -178,7 +179,7 @@ struct TrianglePrimitiveRasterizer::Impl
                 n = normalize(n);
             }
 
-            glm::dvec3 l = -lightDir;
+            glm::dvec3 l = glm::normalize(-lightDir);
             glm::dvec3 v = glm::normalize(cameraPos - vp);
             glm::dvec3 r = glm::reflect(l, n);
 
@@ -191,16 +192,21 @@ struct TrianglePrimitiveRasterizer::Impl
             glm::dvec3 ambient = material.ambient;
             if (material.ambientSampler.isValid())
                 ambient = material.ambientSampler.sampleRgba(tc);
+
             glm::dvec3 diffuse = material.diffuse;
+            if (material.diffuseFromVertex)
+                diffuse = color;
             if (material.diffuseSampler.isValid())
                 diffuse = material.diffuseSampler.sampleRgba(tc);
+            diffuse *= nDotL;
 
-            glm::dvec3 lightIntensity(1.0, 1.0, 1.0);
+            glm::dvec3 specular = material.specular;
+            if (material.specularSampler.isValid())
+                specular = material.specularSampler.sampleRgba(tc);
+            specular = specular * std::pow(vDotR, material.specularPower);
 
-            double spec = std::pow(vDotR, 32);
-            glm::dvec3 specular = material.specularPower* spec * lightIntensity;
-
-            color = glm::dvec4(ambient + diffuse * nDotL + specular, 1.0);
+            color = glm::dvec4(ambient + diffuse + specular, 1.0);
+            color.a = 1.0;
 
             self->setRgba(x, y, color);
         }
@@ -236,7 +242,8 @@ TrianglePrimitiveRasterizer::TrianglePrimitiveRasterizer(
  * ---------------------------------------------------------------- */
 void TrianglePrimitiveRasterizer::rasterize(
         const Mesh& triangleMesh,
-        const glm::dmat4& matrix,
+        const glm::dmat4& cameraMatrix,
+        const glm::dmat4& modelMatrix,
         const glm::dmat3& normalMatrix,
         const glm::dvec3& lightDir,
         const glm::dvec3& cameraPos,
@@ -262,7 +269,7 @@ void TrianglePrimitiveRasterizer::rasterize(
         tri.p2 = triangleMesh.vertices[i2];
         tri.p3 = triangleMesh.vertices[i3];
 
-        impl->rasterize(tri, matrix, normalMatrix, lightDir, cameraPos, material);
+        impl->rasterize(tri, cameraMatrix, modelMatrix, normalMatrix, lightDir, cameraPos, material);
     }
 
     qDebug() << __FUNCTION__ << timer.elapsed() << "ms";

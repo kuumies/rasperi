@@ -31,11 +31,13 @@ public:
 
     Rasterizer(int width, int height);
     void clear();
+    void setModelMatrix(const glm::dmat4& view);
     void setViewMatrix(const glm::dmat4& view);
     void setProjectionMatrix(const glm::dmat4& projection);
     void setMaterial(const Material& material);
     void setNormalMode(NormalMode normalMode);
-    void drawTriangleMesh(Mesh* mesh);
+    void drawFilledTriangleMesh(Mesh* mesh);
+    void drawEdgeLineTriangleMesh(Mesh* mesh);
     void drawLineMesh(Mesh* mesh);
 
     ColorFramebuffer colorFramebuffer() const;

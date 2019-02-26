@@ -28,6 +28,7 @@ public:
     virtual ~PrimitiveRasterizer();
 
     glm::dvec3 project(const glm::dmat4& m, const glm::dvec3& p);
+    glm::dvec3 transform(const glm::dmat4&m, const glm::dvec3& p);
     glm::ivec2 viewportTransform(const glm::dvec3& p);
     void setRgba(int x, int y, glm::dvec4 c);
 
@@ -61,7 +62,8 @@ public:
                                 Rasterizer::NormalMode normalMode);
 
     void rasterize(const Mesh& triangleMesh,
-                   const glm::dmat4& matrix,
+                   const glm::dmat4& cameraMatrix,
+                   const glm::dmat4& modelMatrix,
                    const glm::dmat3& normalMatrix,
                    const glm::dvec3& lightDir,
                    const glm::dvec3& cameraPos,

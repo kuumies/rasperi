@@ -4,6 +4,8 @@
  * ---------------------------------------------------------------- */
  
 #include "rasperi_primitive_rasterizer.h"
+#include <QtCore/QDebug>
+#include <QtCore/QTime>
 
 namespace kuu
 {
@@ -34,6 +36,8 @@ struct LinePrimitiveRasterizer::Impl
         glm::dvec2 vpP1 = self->viewportTransform(p1);
         glm::dvec2 vpP2 = self->viewportTransform(p2);
         glm::dvec2 diff = vpP2 - vpP1;
+        if (glm::length(diff) == 0.0)
+            return;
         glm::dvec2 dir = glm::normalize(vpP2 - vpP1);
         double a = glm::length(diff);
         double d = glm::length(dir);
@@ -71,6 +75,9 @@ LinePrimitiveRasterizer::LinePrimitiveRasterizer(ColorFramebuffer& colorbuffer,
  * ---------------------------------------------------------------- */
 void LinePrimitiveRasterizer::rasterize(const Mesh& m, const glm::dmat4& matrix)
 {
+    QTime timer;
+    timer.start();
+
     for (size_t i = 0; i < m.indices.size(); i += 2)
     {
         unsigned i1 = m.indices[i + 0];
@@ -80,6 +87,8 @@ void LinePrimitiveRasterizer::rasterize(const Mesh& m, const glm::dmat4& matrix)
 
         impl->rasterize(v1, v2, matrix);
     }
+
+    qDebug() << __FUNCTION__ << timer.elapsed() << "ms";
 }
 
 } // namespace rasperi

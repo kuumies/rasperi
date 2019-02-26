@@ -25,8 +25,8 @@ struct Rasterizer::Impl
         , depthFramebuffer(width, height, 1)
         , normalMode(NormalMode::Coarse)
     {
-        view = glm::translate(glm::dmat4(1.0), glm::dvec3(0, 0, 3.0));
-        projection = glm::perspective(M_PI * 0.25, width / double(height), 0.1, 150.0);
+        viewMatrix = glm::translate(glm::dmat4(1.0), glm::dvec3(0, 0, 3.0));
+        projectionMatrix = glm::perspective(M_PI * 0.25, width / double(height), 0.1, 150.0);
         lightDir = glm::dvec3(0, 0, -1);
         material.diffuse = glm::dvec3(1.0);
         material.diffuseFromVertex = false;
@@ -37,7 +37,7 @@ struct Rasterizer::Impl
      * ------------------------------------------------------------ */
     void clear()
     {
-        colorFramebuffer.set(0);
+        colorFramebuffer.clear();
         depthFramebuffer.set(std::numeric_limits<double>::max());
     }
 
@@ -45,18 +45,66 @@ struct Rasterizer::Impl
      * ------------------------------------------------------------ */
     void updateMatrices()
     {
-        const glm::dmat4 viewInv = glm::inverse(view);
-        cameraPos = glm::dvec3(viewInv * glm::dvec4(0.0, 0.0, 0.0, 1.0));
-        cameraMatrix = projection * viewInv;
-        normalMatrix = glm::inverseTranspose(glm::dmat3(viewInv));
+        const glm::dmat4 viewInvMatrix = glm::inverse(viewMatrix);
+        cameraPos = glm::dvec3(viewInvMatrix * glm::dvec4(0.0, 0.0, 0.0, 1.0));
+        cameraMatrix = projectionMatrix * viewInvMatrix * modelMatrix;
+        normalMatrix = glm::inverseTranspose(glm::dmat3(viewInvMatrix * modelMatrix));
     }
 
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
-    void drawTriangleMesh(Mesh* mesh)
+    void drawFilledTriangleMesh(Mesh* mesh)
     {
         TrianglePrimitiveRasterizer triRast(colorFramebuffer, depthFramebuffer, normalMode);
-        triRast.rasterize(*mesh, cameraMatrix, normalMatrix, lightDir, cameraPos, material);
+        triRast.rasterize(*mesh, cameraMatrix, modelMatrix, normalMatrix, lightDir, cameraPos, material);
+    }
+
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
+    void drawEdgeLineTriangleMesh(Mesh* triangleMesh)
+    {
+        unsigned index = 0;
+        Mesh lineMesh;
+        for (size_t i = 0; i < triangleMesh->indices.size(); i += 3)
+        {
+            unsigned i1 = triangleMesh->indices[i + 0];
+            unsigned i2 = triangleMesh->indices[i + 1];
+            unsigned i3 = triangleMesh->indices[i + 2];
+            if (i1 >= triangleMesh->vertices.size() ||
+                i2 >= triangleMesh->vertices.size() ||
+                i3 >= triangleMesh->vertices.size())
+            {
+                std::cout << "invalid index" << std::endl;
+                continue;
+            }
+
+            Triangle tri;
+            tri.p1 = triangleMesh->vertices[i1];
+            tri.p2 = triangleMesh->vertices[i2];
+            tri.p3 = triangleMesh->vertices[i3];
+            tri.p1.color = glm::dvec4(1.0);
+            tri.p2.color = glm::dvec4(1.0);
+            tri.p3.color = glm::dvec4(1.0);
+
+            lineMesh.vertices.push_back(tri.p1);
+            lineMesh.vertices.push_back(tri.p2);
+            lineMesh.vertices.push_back(tri.p3);
+
+
+            i1 = index++;
+            i2 = index++;
+            i3 = index++;
+
+            lineMesh.indices.push_back(i1);
+            lineMesh.indices.push_back(i2);
+            lineMesh.indices.push_back(i2);
+            lineMesh.indices.push_back(i3);
+            lineMesh.indices.push_back(i3);
+            lineMesh.indices.push_back(i1);
+        }
+
+        LinePrimitiveRasterizer linRast(colorFramebuffer, depthFramebuffer);
+        linRast.rasterize(lineMesh, cameraMatrix);
     }
 
     /* ------------------------------------------------------------ *
@@ -70,11 +118,11 @@ struct Rasterizer::Impl
     ColorFramebuffer colorFramebuffer;
     DepthFramebuffer depthFramebuffer;
     NormalMode normalMode;
-    glm::dmat4 view;
-    glm::dmat4 projection;
+    glm::dmat4 modelMatrix;
+    glm::dmat4 viewMatrix;
+    glm::dmat4 projectionMatrix;
     glm::dmat4 cameraMatrix;
     glm::dmat3 normalMatrix;
-    std::vector<Mesh*> meshes;
     glm::dvec3 lightDir;
     glm::dvec3 cameraPos;
     Material material;
@@ -91,11 +139,17 @@ Rasterizer::Rasterizer(int width, int height)
 void Rasterizer::clear()
 { impl->clear(); }
 
+void Rasterizer::setModelMatrix(const glm::dmat4& model)
+{
+    impl->modelMatrix = model;
+    impl->updateMatrices();
+}
+
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
 void Rasterizer::setViewMatrix(const glm::dmat4& view)
 {
-    impl->view = view;
+    impl->viewMatrix = view;
     impl->updateMatrices();
 }
 
@@ -103,7 +157,7 @@ void Rasterizer::setViewMatrix(const glm::dmat4& view)
  * ---------------------------------------------------------------- */
 void Rasterizer::setProjectionMatrix(const glm::dmat4& projection)
 {
-    impl->projection = projection;
+    impl->projectionMatrix = projection;
     impl->updateMatrices();
 }
 
@@ -119,8 +173,13 @@ void Rasterizer::setNormalMode(Rasterizer::NormalMode normalMode)
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-void Rasterizer::drawTriangleMesh(Mesh* mesh)
-{ impl->drawTriangleMesh(mesh); }
+void Rasterizer::drawFilledTriangleMesh(Mesh* mesh)
+{ impl->drawFilledTriangleMesh(mesh); }
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+void Rasterizer::drawEdgeLineTriangleMesh(Mesh* mesh)
+{ impl->drawEdgeLineTriangleMesh(mesh); }
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */

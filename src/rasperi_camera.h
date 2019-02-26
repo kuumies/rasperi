@@ -1,16 +1,13 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The definition of types of kuu::rasperi::ModelImporter class.
+   The definition of types of kuu::rasperi::Camera class.
  * ---------------------------------------------------------------- */
  
 #pragma once
 
-#include <memory>
-#include <vector>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/vec3.hpp>
-#include <QtCore/QString>
-#include "rasperi_model.h"
+#include <glm/mat4x4.hpp>
 
 namespace kuu
 {
@@ -19,15 +16,23 @@ namespace rasperi
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-class ModelImporter
+class Camera
 {
 public:
-    ModelImporter();
-    std::vector<Model> import(const QString& filepath) const;
+    glm::dmat4 viewMatrix() const;
+    glm::dmat4 projectionMatrix() const;
+    glm::dmat4 cameraMatrix() const;
 
-private:
-    struct Impl;
-    std::shared_ptr<Impl> impl;
+    // Transform
+    glm::dvec3 position  = glm::dvec3(0, 0, 5);
+    glm::dquat rotation;
+    double viewDistance = 10.0;
+
+    // Projection
+    double fieldOfView = 45.0;
+    double aspectRatio = 1.0;
+    double nearPlane   = 0.1;
+    double farPlane    = 75.0;
 };
 
 } // namespace rasperi

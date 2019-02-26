@@ -1,16 +1,12 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The definition of types of kuu::rasperi::ModelImporter class.
+   Definition of kuu::rasperi::ProgressDialog class.
  * ---------------------------------------------------------------- */
- 
+
 #pragma once
 
 #include <memory>
-#include <vector>
-#include <glm/gtc/quaternion.hpp>
-#include <glm/vec3.hpp>
-#include <QtCore/QString>
-#include "rasperi_model.h"
+#include <QtWidgets/QProgressDialog>
 
 namespace kuu
 {
@@ -19,11 +15,21 @@ namespace rasperi
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-class ModelImporter
+class ProgressDialog : public QProgressDialog
 {
+    Q_OBJECT
+
 public:
-    ModelImporter();
-    std::vector<Model> import(const QString& filepath) const;
+    ProgressDialog(QWidget* parent = nullptr);
+
+public slots:
+    void setProgress(int min, int value, int max);
+
+signals:
+    void doSetProgress(int min, int value, int max);
+
+private slots:
+    void onDoSetProgress(int min, int value, int max);
 
 private:
     struct Impl;

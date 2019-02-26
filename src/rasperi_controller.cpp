@@ -4,7 +4,10 @@
  * ---------------------------------------------------------------- */
 
 #include "rasperi_controller.h"
+#include <glm/gtx/string_cast.hpp>
 #include <QtCore/QDebug>
+#include "rasperi_camera.h"
+#include "rasperi_camera_controller.h"
 #include "rasperi_image_widget.h"
 #include "rasperi_main_window.h"
 #include "rasperi_model_importer.h"
@@ -156,77 +159,116 @@ struct Controller::Impl
     Impl(Controller* self)
         : self(self)
         , mainWindow(self)
-    {}
-
-    /* ------------------------------------------------------------ *
-     * ------------------------------------------------------------ */
-    void renderDefaultScene(int w, int h)
+        , imageWidget(self)
+        , camera(std::make_shared<Camera>())
+        , cameraController(std::make_shared<CameraController>(self))
+        , rasterizer(720, 576)
     {
-        Vertex v1, v2;
-        v1.position.x = -4.0;
-        v1.color.r = 1.0;
-        v1.color.a = 1.0;
-        v2.position.x =  4.0;
-        v2.color.b = 1.0;
-        v2.color.a = 1.0;
-
-        Mesh line;
-        line.vertices.push_back(v1);
-        line.vertices.push_back(v2);
-        line.indices.push_back(0);
-        line.indices.push_back(1);
-
-        Sphere sphere(1.0, 64, 64);
-        Quad q;
-
-        Rasterizer r(w, h);
-        r.clear();
-        r.setNormalMode(Rasterizer::NormalMode::Coarse);
-        r.drawTriangleMesh(&sphere);
-        r.drawLineMesh(&line);
-        r.drawTriangleMesh(&q);
-
-        ColorFramebuffer colorFramebuffer = r.colorFramebuffer();
-        image = colorFramebuffer.toQImage();
+        Model m;
+        m.material = std::make_shared<Material>();
+        m.material->diffuseFromVertex = true;
+        m.mesh = std::make_shared<Sphere>(1.0, 32, 32);
+        models.push_back(m);
     }
 
-    void renderModels(int w, int h,
-                      std::vector<ModelImporter::Model>& models)
+   /* ------------------------------------------------------------- *
+    * ------------------------------------------------------------- */
+    void rasterize(bool filled)
     {
-        BoundingBox bb;
-        for (const ModelImporter::Model& model : models)
-            for (const Vertex& v : model.mesh->vertices)
-                bb.update(v.position);
-
-        //qDebug() << bb.min.z << bb.max.z;
-        double zDepth = 0.0;
-        zDepth = std::max(zDepth, std::abs(bb.min.z) + std::abs(bb.max.z));
-        zDepth = std::max(zDepth, std::abs(bb.min.y) + std::abs(bb.max.y));
-        zDepth = std::max(zDepth, std::abs(bb.min.x) + std::abs(bb.max.x));
-        glm::dvec3 center = (bb.max - bb.min) * 0.5;
-
-        glm::dmat4 view = glm::translate(glm::dmat4(1.0), glm::dvec3(0.0, center.y, zDepth * 1.4));
-        glm::dmat4 proj = glm::perspective(M_PI * 0.25, w / double(h), 0.1, zDepth * 2);
-
-        Rasterizer r(w, h);
-        r.clear();
-        r.setViewMatrix(view);
-        r.setProjectionMatrix(proj);
-        r.setNormalMode(Rasterizer::NormalMode::Coarse);
-        for (ModelImporter::Model& model : models)
+        rasterizer.clear();
+        rasterizer.setNormalMode(Rasterizer::NormalMode::Smooth);
+        rasterizer.setViewMatrix(camera->viewMatrix());
+        rasterizer.setProjectionMatrix(camera->projectionMatrix());
+        for (Model& model : models)
         {
-            r.setMaterial(*model.material);
-            r.drawTriangleMesh(model.mesh.get());
+            if (model.transform)
+                rasterizer.setModelMatrix(model.transform->matrix());
+            if (model.material)
+                rasterizer.setMaterial(*model.material);
+            if (filled)
+                rasterizer.drawFilledTriangleMesh(model.mesh.get());
+            else
+                rasterizer.drawEdgeLineTriangleMesh(model.mesh.get());
         }
 
-        ColorFramebuffer colorFramebuffer = r.colorFramebuffer();
+        ColorFramebuffer colorFramebuffer = rasterizer.colorFramebuffer();
         image = colorFramebuffer.toQImage();
+        imageWidget.setImage(image);
     }
+
+//    /* ------------------------------------------------------------ *
+//     * ------------------------------------------------------------ */
+//    void renderDefaultScene(int w, int h)
+//    {
+//        Vertex v1, v2;
+//        v1.position.x = -4.0;
+//        v1.color.r = 1.0;
+//        v1.color.a = 1.0;
+//        v2.position.x =  4.0;
+//        v2.color.b = 1.0;
+//        v2.color.a = 1.0;
+
+//        Mesh line;
+//        line.vertices.push_back(v1);
+//        line.vertices.push_back(v2);
+//        line.indices.push_back(0);
+//        line.indices.push_back(1);
+
+//        Sphere sphere(1.0, 64, 64);
+//        Quad q;
+
+//        Rasterizer r(w, h);
+//        r.clear();
+//        r.setNormalMode(Rasterizer::NormalMode::Coarse);
+//        r.drawEdgeLineTriangleMesh(&sphere);
+//        r.drawLineMesh(&line);
+//        r.drawFilledTriangleMesh(&q);
+
+//        ColorFramebuffer colorFramebuffer = r.colorFramebuffer();
+//        image = colorFramebuffer.toQImage();
+//    }
+
+//    void renderModels(int w, int h,
+//                      std::vector<ModelImporter::Model>& models)
+//    {
+//        BoundingBox bb;
+//        for (const ModelImporter::Model& model : models)
+//            for (const Vertex& v : model.mesh->vertices)
+//                bb.update(v.position);
+
+//        //qDebug() << bb.min.z << bb.max.z;
+//        double zDepth = 0.0;
+//        zDepth = std::max(zDepth, std::abs(bb.min.z) + std::abs(bb.max.z));
+//        zDepth = std::max(zDepth, std::abs(bb.min.y) + std::abs(bb.max.y));
+//        zDepth = std::max(zDepth, std::abs(bb.min.x) + std::abs(bb.max.x));
+//        glm::dvec3 center = (bb.max - bb.min) * 0.5;
+
+//        glm::dmat4 view = glm::translate(glm::dmat4(1.0), glm::dvec3(0.0, center.y, zDepth * 1.4));
+//        glm::dmat4 proj = glm::perspective(M_PI * 0.25, w / double(h), 0.1, zDepth * 2);
+
+//        Rasterizer r(w, h);
+//        r.clear();
+//        r.setViewMatrix(view);
+//        r.setProjectionMatrix(proj);
+//        r.setNormalMode(Rasterizer::NormalMode::Coarse);
+//        for (ModelImporter::Model& model : models)
+//        {
+//            r.setMaterial(*model.material);
+//            r.drawEdgeLineTriangleMesh(model.mesh.get());
+//        }
+
+//        ColorFramebuffer colorFramebuffer = r.colorFramebuffer();
+//        image = colorFramebuffer.toQImage();
+//    }
 
     Controller* self = nullptr;
     QImage image;
     MainWindow mainWindow;
     ImageWidget imageWidget;
+    std::shared_ptr<Camera> camera;
+    std::shared_ptr<CameraController> cameraController;
+    Rasterizer rasterizer;
+    std::vector<Model> models;
 };
 
 /* ---------------------------------------------------------------- *
@@ -237,11 +279,32 @@ Controller::Controller()
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
+std::shared_ptr<Camera> Controller::camera() const
+{ return impl->camera; }
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+std::shared_ptr<CameraController> Controller::cameraController() const
+{ return impl->cameraController; }
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+void Controller::setImageSize(int w, int h)
+{
+    impl->rasterizer = Rasterizer(w, h);
+    impl->camera->aspectRatio = w / double(h);
+}
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+void Controller::rasterize(bool filled)
+{ impl->rasterize(filled); }
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
 void Controller::showUi()
 {
     impl->mainWindow.setWindowTitle("Rasperi");
-    impl->renderDefaultScene(720, 576);
-    impl->imageWidget.setImage(impl->image);
     impl->mainWindow.setCentralWidget(&impl->imageWidget);
     impl->mainWindow.showMaximized();
 }
@@ -250,14 +313,38 @@ void Controller::showUi()
  * ---------------------------------------------------------------- */
 bool Controller::importModel(const QString& filepath)
 {
-    std::vector<ModelImporter::Model> models =
+    std::vector<Model> models =
         ModelImporter().import(filepath);
     if (models.empty())
         return false;
 
-    impl->renderModels(impl->imageWidget.width(), impl->imageWidget.height(), models);
-    impl->imageWidget.setImage(impl->image);
+    Impl::BoundingBox bb;
+    for (const Model& model : models)
+        for (const Vertex& v : model.mesh->vertices)
+            bb.update(v.position);
 
+//    double zDepth = 0.0;
+    //zDepth = std::max(zDepth, std::abs(bb.min.z) + std::abs(bb.max.z));
+    //zDepth = std::max(zDepth, std::abs(bb.min.y) + std::abs(bb.max.y));
+    //zDepth = std::max(zDepth, std::abs(bb.min.x) + std::abs(bb.max.x));
+    glm::dvec3 size = glm::abs(bb.max) + glm::abs(bb.min);
+    glm::dvec3 center = (bb.max - bb.min) * 0.5;
+    glm::dvec3 toOrigo = center - glm::dvec3(0.0);
+    for (const Model& model : models)
+        model.transform->position = toOrigo;
+
+    toOrigo.z = 100.0;
+    std::cout << __FUNCTION__          << ": "
+              << glm::to_string(size)  << ", "
+              << glm::to_string(center)
+              << std::endl;
+
+    //impl->camera->rotation = glm::quat();
+    impl->camera->position = glm::dvec3(0.0, 0.0, size.z);
+    impl->camera->farPlane = size.z * 2;
+
+    impl->models = models;
+    impl->rasterize(true);
     return true;
 }
 

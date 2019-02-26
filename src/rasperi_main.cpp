@@ -20,6 +20,7 @@ int main(int argc, char** argv)
     {
         Controller controller;
         controller.showUi();
+        controller.rasterize(true);
 
         app.exec();
     }

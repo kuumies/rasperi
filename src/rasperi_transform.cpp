@@ -1,16 +1,9 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The definition of types of kuu::rasperi::ModelImporter class.
+   The implementation of kuu::rasperi::Transform struct.
  * ---------------------------------------------------------------- */
  
-#pragma once
-
-#include <memory>
-#include <vector>
-#include <glm/gtc/quaternion.hpp>
-#include <glm/vec3.hpp>
-#include <QtCore/QString>
-#include "rasperi_model.h"
+#include "rasperi_transform.h"
 
 namespace kuu
 {
@@ -19,16 +12,13 @@ namespace rasperi
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-class ModelImporter
+glm::dmat4 Transform::matrix() const
 {
-public:
-    ModelImporter();
-    std::vector<Model> import(const QString& filepath) const;
-
-private:
-    struct Impl;
-    std::shared_ptr<Impl> impl;
-};
+    glm::dmat4 matrix = glm::mat4(1.0);
+    matrix *= glm::mat4_cast(rotation);
+    matrix = glm::translate(matrix, position);
+    return matrix;
+}
 
 } // namespace rasperi
 } // namespace kuu

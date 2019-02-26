@@ -6,6 +6,8 @@
 #include "rasperi_image_widget.h"
 #include <QtGui/QKeyEvent>
 #include <QtGui/QPainter>
+#include "rasperi_camera_controller.h"
+#include "rasperi_controller.h"
 
 namespace kuu
 {
@@ -16,15 +18,18 @@ namespace rasperi
  * ---------------------------------------------------------------- */
 struct ImageWidget::Impl
 {
+    Controller* controller;
     QImage image;
 };
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-ImageWidget::ImageWidget(QWidget* parent)
+ImageWidget::ImageWidget(Controller* controller, QWidget* parent)
     : QWidget(parent)
     , impl(std::make_shared<Impl>())
-{}
+{
+    impl->controller = controller;
+}
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
@@ -32,6 +37,13 @@ void ImageWidget::setImage(const QImage& image)
 {
     impl->image = image;
     repaint();
+}
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+void ImageWidget::resizeEvent(QResizeEvent* /*e*/)
+{
+    impl->controller->setImageSize(width(), height());
 }
 
 /* ---------------------------------------------------------------- *
@@ -69,10 +81,39 @@ void ImageWidget::paintEvent(QPaintEvent* e)
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-void ImageWidget::keyPressEvent(QKeyEvent *e)
+void ImageWidget::keyPressEvent(QKeyEvent* e)
 {
     if (e->key() == Qt::Key_Escape)
         close();
+    impl->controller->cameraController()->setKeyPress(e);
+}
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+void ImageWidget::keyReleaseEvent(QKeyEvent *e)
+{
+    impl->controller->cameraController()->setKeyRelease(e);
+}
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+void ImageWidget::mousePressEvent(QMouseEvent* e)
+{
+    impl->controller->cameraController()->setMousePress(e);
+}
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+void ImageWidget::mouseMoveEvent(QMouseEvent* e)
+{
+    impl->controller->cameraController()->setMouseMove(e);
+}
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+void ImageWidget::mouseReleaseEvent(QMouseEvent* e)
+{
+    impl->controller->cameraController()->setMouseRelease(e);
 }
 
 } // namespace rasperi
