@@ -167,7 +167,8 @@ struct Controller::Impl
         Model m;
         m.material = std::make_shared<Material>();
         m.material->diffuseFromVertex = true;
-        m.mesh = std::make_shared<Sphere>(1.0, 32, 32);
+        //m.material->diffuseSampler.setMap(QImage("/temp/my_msp.png"));
+        m.mesh = std::make_shared<Sphere>(1.0, 64, 64);
         models.push_back(m);
     }
 
@@ -194,6 +195,30 @@ struct Controller::Impl
         ColorFramebuffer colorFramebuffer = rasterizer.colorFramebuffer();
         image = colorFramebuffer.toQImage();
         imageWidget.setImage(image);
+    }
+
+    /* ------------------------------------------------------------- *
+     * ------------------------------------------------------------- */
+    double fittingDistance(
+        const glm::dvec2& size,
+        const glm::dvec4& viewport,
+        const double fieldOfView)
+    {
+        // Screen aspect ratio
+        double aspect = viewport.z / viewport.w;
+
+        // Calculate max distance "radius" that must be visible
+        double radius = std::max(size.x, size.y * aspect) / 2.0;
+        //radius /= 2.0f;
+
+        // Calculate fov
+        double fov = 0.5 * glm::radians(fieldOfView);
+        if (aspect < 1.0)
+            // Fov in x is smaller
+            fov = std::atan(aspect * std::tan(fov));
+
+        // Return distance
+        return radius / std::sin(fov);
     }
 
 //    /* ------------------------------------------------------------ *
@@ -318,30 +343,37 @@ bool Controller::importModel(const QString& filepath)
     if (models.empty())
         return false;
 
+    // Model bounding box
     Impl::BoundingBox bb;
     for (const Model& model : models)
         for (const Vertex& v : model.mesh->vertices)
             bb.update(v.position);
 
-//    double zDepth = 0.0;
-    //zDepth = std::max(zDepth, std::abs(bb.min.z) + std::abs(bb.max.z));
-    //zDepth = std::max(zDepth, std::abs(bb.min.y) + std::abs(bb.max.y));
-    //zDepth = std::max(zDepth, std::abs(bb.min.x) + std::abs(bb.max.x));
-    glm::dvec3 size = glm::abs(bb.max) + glm::abs(bb.min);
+    // Model center point to origo
     glm::dvec3 center = (bb.max - bb.min) * 0.5;
-    glm::dvec3 toOrigo = center - glm::dvec3(0.0);
+    glm::dvec3 toOrigo = -center;
     for (const Model& model : models)
         model.transform->position = toOrigo;
 
-    toOrigo.z = 100.0;
-    std::cout << __FUNCTION__          << ": "
-              << glm::to_string(size)  << ", "
-              << glm::to_string(center)
-              << std::endl;
+    // Fit camera to view the whole model
+    glm::dvec3 size = bb.max - bb.min;
+    double distance = impl->fittingDistance(
+                glm::dvec2(size.x, size.y),
+                glm::dvec4(0.0, 0.0,
+                           impl->imageWidget.width(),
+                           impl->imageWidget.height()),
+                impl->camera->fieldOfView);
+
+//    toOrigo.z = 100.0;
+//    std::cout << __FUNCTION__          << ": "
+//              << glm::to_string(size)  << ", "
+//              << glm::to_string(center)
+//              << std::endl;
 
     //impl->camera->rotation = glm::quat();
-    impl->camera->position = glm::dvec3(0.0, 0.0, size.z);
-    impl->camera->farPlane = size.z * 2;
+    impl->cameraController->setZoomAmount(size.z / 10.0);
+    impl->camera->position = glm::dvec3(0.0, 0.0, distance);
+    impl->camera->farPlane = distance * 2;
 
     impl->models = models;
     impl->rasterize(true);

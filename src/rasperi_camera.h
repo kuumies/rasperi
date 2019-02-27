@@ -25,8 +25,7 @@ public:
 
     // Transform
     glm::dvec3 position  = glm::dvec3(0, 0, 5);
-    glm::dquat rotation;
-    double viewDistance = 10.0;
+    glm::dquat rotation = glm::dquat(1.0, 0.0, 0.0, 0.0);
 
     // Projection
     double fieldOfView = 45.0;

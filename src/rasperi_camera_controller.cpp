@@ -22,16 +22,13 @@ struct CameraController::Impl
 {
     Impl(Controller* controller)
         : controller(controller)
-        //, camera(controller->camera())
-    {
-        //position = camera->position;
-        //rotation = camera->rotation;
-    }
+    {}
 
     glm::dvec3 position  = glm::dvec3();
     glm::dquat rotation  = glm::dquat();
     double pitch         = 0.0;
     double yaw           = 0.0;
+    double zoomAmount    = 0.5;
 
     bool rotate          = false;
     QPointF rotatePos    = QPointF();
@@ -39,7 +36,6 @@ struct CameraController::Impl
     std::map<int, bool> keyDownMap;
 
     Controller* controller;
-    std::shared_ptr<Camera> camera;
 };
 
 /* -----------------------------------------------------------------*
@@ -47,6 +43,11 @@ struct CameraController::Impl
 CameraController::CameraController(Controller* controller)
     : impl(std::make_shared<Impl>(controller))
 {}
+
+/* -----------------------------------------------------------------*
+ * -----------------------------------------------------------------*/
+void CameraController::setZoomAmount(double amount)
+{ impl->zoomAmount = amount; }
 
 /* -----------------------------------------------------------------*
  * -----------------------------------------------------------------*/
@@ -143,8 +144,13 @@ void CameraController::setMouseRelease(QMouseEvent* /*e*/)
 
 /* -----------------------------------------------------------------*
  * -----------------------------------------------------------------*/
-void CameraController::setWheel(QWheelEvent* /*e*/)
-{}
+void CameraController::setWheel(QWheelEvent* e)
+{
+    double amount = e->delta() > 0 ? -impl->zoomAmount : impl->zoomAmount;
+    glm::dvec3 shift(0, 0, amount);
+    impl->controller->camera()->position += shift;
+    impl->controller->rasterize(true);
+}
 
 /* -----------------------------------------------------------------*
  * -----------------------------------------------------------------*/

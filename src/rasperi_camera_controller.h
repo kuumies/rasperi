@@ -27,6 +27,8 @@ class CameraController
 public:
     CameraController(Controller* controller);
 
+    void setZoomAmount(double amount);
+
     void setMousePress(QMouseEvent* e);
     void setMouseMove(QMouseEvent* e);
     void setMouseRelease(QMouseEvent* e);

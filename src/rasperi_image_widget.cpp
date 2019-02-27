@@ -116,5 +116,12 @@ void ImageWidget::mouseReleaseEvent(QMouseEvent* e)
     impl->controller->cameraController()->setMouseRelease(e);
 }
 
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+void ImageWidget::wheelEvent(QWheelEvent* e)
+{
+    impl->controller->cameraController()->setWheel(e);
+}
+
 } // namespace rasperi
 } // namespace kuu

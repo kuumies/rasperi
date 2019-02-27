@@ -47,8 +47,8 @@ struct Rasterizer::Impl
     {
         const glm::dmat4 viewInvMatrix = glm::inverse(viewMatrix);
         cameraPos = glm::dvec3(viewInvMatrix * glm::dvec4(0.0, 0.0, 0.0, 1.0));
-        cameraMatrix = projectionMatrix * viewInvMatrix * modelMatrix;
-        normalMatrix = glm::inverseTranspose(glm::dmat3(viewInvMatrix * modelMatrix));
+        cameraMatrix = projectionMatrix * viewMatrix * modelMatrix;
+        normalMatrix = glm::inverseTranspose(glm::dmat3(viewMatrix * modelMatrix));
     }
 
     /* ------------------------------------------------------------ *
