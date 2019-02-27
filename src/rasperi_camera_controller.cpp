@@ -5,6 +5,7 @@
 
 #include "rasperi_camera_controller.h"
 #include <cmath>
+#include <iostream>
 #include <QtGui/QMouseEvent>
 #include <QtGui/QWheelEvent>
 
@@ -32,6 +33,8 @@ struct CameraController::Impl
 
     bool rotate          = false;
     QPointF rotatePos    = QPointF();
+    bool translate       = false;
+    QPointF translatePos = QPointF();
 
     std::map<int, bool> keyDownMap;
 
@@ -87,8 +90,11 @@ void CameraController::setZoomAmount(double amount)
  * -----------------------------------------------------------------*/
 void CameraController::setMousePress(QMouseEvent* e)
 {
-    if (e->buttons() & Qt::MiddleButton)
-    {}
+    if (e->buttons() & Qt::LeftButton)
+    {
+        impl->translate    = true;
+        impl->translatePos = e->pos();
+    }
 
     if (e->buttons() & Qt::RightButton)
     {
@@ -102,6 +108,17 @@ void CameraController::setMousePress(QMouseEvent* e)
  * -----------------------------------------------------------------*/
 void CameraController::setMouseMove(QMouseEvent* e)
 {
+    if (impl->translate)
+    {
+        const QPointF diff = e->pos() - impl->translatePos;
+        impl->translatePos = e->pos();
+
+        glm::dvec4 fc(0.0, 0.0, -1.0, 0.0);
+        glm::dvec3 fw = glm::inverse(impl->controller->camera()->viewMatrix()) * fc;
+
+
+    }
+
     if (impl->rotate)
     {
         // Get the cursor position difference related to previous
@@ -139,6 +156,8 @@ void CameraController::setMouseRelease(QMouseEvent* /*e*/)
 {
     impl->rotate       = false;
     impl->rotatePos    = QPointF();
+    impl->translate    = false;
+    impl->translatePos = QPointF();
     impl->controller->rasterize(true);
 }
 
@@ -156,7 +175,29 @@ void CameraController::setWheel(QWheelEvent* e)
  * -----------------------------------------------------------------*/
 void CameraController::setKeyPress(QKeyEvent* e)
 {
-    impl->keyDownMap[e->key()] = true;
+    glm::dvec3 moveDir;
+    if (e->key() == Qt::Key_W)
+    {
+        moveDir.z = -1.0;
+    }
+    if (e->key() == Qt::Key_S)
+    {
+        moveDir.z = 1.0;
+    }
+    if (e->key() == Qt::Key_A)
+    {
+        moveDir.x = -1.0;
+    }
+    if (e->key() == Qt::Key_D)
+    {
+        moveDir.x = 1.0;
+    }
+
+    auto camera = impl->controller->camera();
+    moveDir = glm::dvec3(glm::inverse(camera->viewMatrix()) * glm::dvec4(moveDir, 0.0));
+
+    camera->position += moveDir * 0.5;
+    impl->controller->rasterize(false);
 }
 
 /* -----------------------------------------------------------------*
@@ -164,6 +205,7 @@ void CameraController::setKeyPress(QKeyEvent* e)
 void CameraController::setKeyRelease(QKeyEvent* e)
 {
     impl->keyDownMap[e->key()] = false;
+    impl->controller->rasterize(true);
 }
 
 } // namespace rapseri

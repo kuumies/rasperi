@@ -29,6 +29,7 @@ ImageWidget::ImageWidget(Controller* controller, QWidget* parent)
     , impl(std::make_shared<Impl>())
 {
     impl->controller = controller;
+    setFocusPolicy(Qt::WheelFocus);
 }
 
 /* ---------------------------------------------------------------- *
