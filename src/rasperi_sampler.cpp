@@ -6,6 +6,7 @@
 #include "rasperi_sampler.h"
 #include <array>
 #include <iostream>
+#include <glm/gtx/string_cast.hpp>
 #include <glm/geometric.hpp>
 
 namespace kuu
@@ -40,9 +41,30 @@ struct Sampler::Impl
 
     /* ----------------------------------------------------------- *
      * ----------------------------------------------------------- */
+    glm::dvec2 clampTexCoord(glm::dvec2 texCoord) const
+    {
+        texCoord.x = glm::clamp(texCoord.x, 0.0, 1.0);
+        texCoord.y = glm::clamp(texCoord.y, 0.0, 1.0);
+        return texCoord;
+    }
+
+    /* ----------------------------------------------------------- *
+     * ----------------------------------------------------------- */
+    glm::ivec2 mapCoord(const glm::dvec2& texCoord) const
+    {
+        int px = int(std::floor(texCoord.x * double(map.width()  - 1)));
+        int py = int(std::floor(texCoord.y * double(map.height() - 1)));
+        return glm::ivec2(px, py);
+    }
+
+    /* ----------------------------------------------------------- *
+     * ----------------------------------------------------------- */
     glm::dvec4 sampleRgbaNearest(glm::dvec2 texCoord) const
     {
-        texCoord = wrapTexCoord(texCoord);
+        //texCoord = wrapTexCoord(texCoord);
+        //texCoord = clampTexCoord(texCoord);
+        //texCoord.x = 1.0 - texCoord.x;
+        texCoord.y = 1.0 - texCoord.y;
 
         int px = int(std::floor(texCoord.x * double(map.width()  - 1)));
         int py = int(std::floor(texCoord.y * double(map.height() - 1)));
@@ -53,6 +75,7 @@ struct Sampler::Impl
      * ----------------------------------------------------------- */
     glm::dvec4 sampleRgbaLinear(glm::dvec2 texCoord) const
     {
+        texCoord.y = 1.0 - texCoord.y;
         texCoord = wrapTexCoord(texCoord);
 
         int px = int(std::floor(texCoord.x * double(map.width()  - 1)));
@@ -75,14 +98,22 @@ struct Sampler::Impl
      * ----------------------------------------------------------- */
     glm::dvec4 sampleRgba(int x, int y) const
     {      
-        x = map.width() - x;
+        //x = map.width() - x - 1;
+
+        if (map.isNull() || map.width() <= 0 || map.height() <= 0)
+        {
+            std::cerr << __FUNCTION__ << ": "
+                      << "map error"
+                      << std::endl;
+            return glm::dvec4(0.0);
+        }
 
         if (map.isNull() || x < 0 || x >= map.width() || y < 0 || y >= map.height())
         {
             std::cerr << __FUNCTION__ << ": "
                       << x << ", " << y << ", "
                       << map.width() << ", " << map.height()
-                      << std::endl;
+                      << std::endl << std::flush;
             return glm::dvec4(0.0);
         }
 

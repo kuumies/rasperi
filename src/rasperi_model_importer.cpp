@@ -234,7 +234,8 @@ std::vector<Model> ModelImporter::import(const QString& filepath) const
     if (!scene)
         return {};
 
-    qDebug() << scene->mNumMeshes
+    qDebug() << __FUNCTION__
+             << scene->mNumMeshes
              << scene->mNumMaterials
              << scene->mNumTextures;
 
@@ -253,6 +254,16 @@ std::vector<Model> ModelImporter::import(const QString& filepath) const
                 scene->mMeshes[child->mMeshes[m]];
             if (!mesh)
                 return {};
+
+            qDebug() << __FUNCTION__
+                     << c
+                     << mesh->mNumVertices
+                     << mesh->mNumFaces
+                     << mesh->HasPositions()
+                     << mesh->HasNormals()
+                     << mesh->HasVertexColors(0)
+                     << mesh->HasTextureCoords(0)
+                     << mesh->HasTangentsAndBitangents();
 
             Model model;
             model.mesh = impl->importMesh(mesh);

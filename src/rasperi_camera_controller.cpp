@@ -132,12 +132,12 @@ void CameraController::setMouseMove(QMouseEvent* e)
         impl->yaw   += yaw;
         impl->pitch += pitch;
 
-        const double halfPi = M_PI_2;
-        if (impl->pitch >= halfPi || impl->pitch <= -halfPi)
-        {
-            pitch = 0.0;
-            impl->pitch = glm::clamp(impl->pitch, -halfPi, halfPi);
-        }
+//        const double halfPi = M_PI_2;
+//        if (impl->pitch >= halfPi || impl->pitch <= -halfPi)
+//        {
+//            pitch = 0.0;
+//            impl->pitch = glm::clamp(impl->pitch, -halfPi, halfPi);
+//        }
 
         glm::dquat rotation = impl->controller->camera()->rotation;
         const glm::dvec3 pitchAxis = glm::vec3(1.0, 0.0, 0.0);
@@ -166,8 +166,7 @@ void CameraController::setMouseRelease(QMouseEvent* /*e*/)
 void CameraController::setWheel(QWheelEvent* e)
 {
     double amount = e->delta() > 0 ? -impl->zoomAmount : impl->zoomAmount;
-    glm::dvec3 shift(0, 0, amount);
-    impl->controller->camera()->position += shift;
+    impl->controller->camera()->viewDistance += amount;
     impl->controller->rasterize(true);
 }
 

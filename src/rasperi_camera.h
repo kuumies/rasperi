@@ -24,8 +24,9 @@ public:
     glm::dmat4 cameraMatrix() const;
 
     // Transform
-    glm::dvec3 position  = glm::dvec3(0, 0, 5);
+    glm::dvec3 position  = glm::dvec3(0, 0, 0);
     glm::dquat rotation = glm::dquat(1.0, 0.0, 0.0, 0.0);
+    double viewDistance = 5;
 
     // Projection
     double fieldOfView = 45.0;

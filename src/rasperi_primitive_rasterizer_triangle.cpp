@@ -118,96 +118,37 @@ struct TrianglePrimitiveRasterizer::Impl
                 continue;
             self->depthbuffer.set(x, y, 0, z);
 
+            Vertex vertex = interpolatedVertex(tri,
+                                               w1, w2, w3,
+                                               p1.z, p2.z, p3.z,
+                                               z,
+                                               modelMatrix,
+                                               normalMatrix);
 
-            glm::dvec3 vp1 = self->transform(modelMatrix, tri.p1.position) / p1.z;
-            glm::dvec3 vp2 = self->transform(modelMatrix, tri.p2.position) / p2.z;
-            glm::dvec3 vp3 = self->transform(modelMatrix, tri.p3.position) / p3.z;
-            glm::dvec3 vp  = vp1  * w1 * z +
-                             vp2  * w2 * z +
-                             vp3  * w3 * z;
-
-            glm::dvec4 c1  = tri.p1.color / p1.z;
-            glm::dvec4 c2  = tri.p2.color / p2.z;
-            glm::dvec4 c3  = tri.p3.color / p3.z;
-            glm::dvec4 color = c1  * w1 * z +
-                               c2  * w2 * z +
-                               c3  * w3 * z;
-
-            glm::dvec2 tc1  = tri.p1.texCoord / p1.z;
-            glm::dvec2 tc2  = tri.p2.texCoord / p2.z;
-            glm::dvec2 tc3  = tri.p3.texCoord / p3.z;
-            glm::dvec2 tc = tc1  * w1 * z +
-                            tc2  * w2 * z +
-                            tc3  * w3 * z;
-
-            glm::dvec3 n1  = glm::normalize((normalMatrix * tri.p1.normal) / p1.z);
-            glm::dvec3 n2  = glm::normalize((normalMatrix * tri.p2.normal) / p2.z);
-            glm::dvec3 n3  = glm::normalize((normalMatrix * tri.p3.normal) / p3.z);
-            glm::dvec3 n   = n1  * w1 * z +
-                             n2  * w2 * z +
-                             n3  * w3 * z;
 
             if (normalMode == Rasterizer::NormalMode::Coarse)
-                n = triNormal;
-            n = glm::normalize(n);
+                vertex.normal = triNormal;
+            vertex.normal = glm::normalize(vertex.normal);
 
             if (material.normalSampler.isValid())
             {
-                glm::dvec3 t1  =  glm::normalize(normalMatrix * tri.p1.tangent) / p1.z;
-                glm::dvec3 t2  =  glm::normalize(normalMatrix * tri.p2.tangent) / p2.z;
-                glm::dvec3 t3  =  glm::normalize(normalMatrix * tri.p3.tangent) / p3.z;
-                glm::dvec3 t   = t1  * w1 * z +
-                                 t2  * w2 * z +
-                                 t3  * w3 * z;
+                glm::dmat3 tbn = glm::dmat3(vertex.tangent,
+                                            vertex.bitangent,
+                                            vertex.normal);
 
-                glm::dvec3 b1  =  glm::normalize(normalMatrix * tri.p1.bitangent) / p1.z;
-                glm::dvec3 b2  =  glm::normalize(normalMatrix * tri.p2.bitangent) / p2.z;
-                glm::dvec3 b3  =  glm::normalize(normalMatrix * tri.p3.bitangent) / p3.z;
-                glm::dvec3 b   = b1  * w1 * z +
-                                 b2  * w2 * z +
-                                 b3  * w3 * z;
-
-                // re-orthogonalize T with respect to N
-                t = normalize(t - dot(t, n) * n);
-                b = cross(n, t);
-
-                glm::dmat3 tbn = glm::dmat3(t, b, n);
-
-                n = material.normalSampler.sampleRgba(tc);
-                n = normalize(n * 2.0 - 1.0);
-                n = tbn * n;
-                n = normalize(n);
+                vertex.normal = material.normalSampler.sampleRgba(vertex.texCoord);
+                vertex.normal = normalize(vertex.normal * 2.0 - 1.0);
+                vertex.normal = tbn * vertex.normal;
+                vertex.normal = normalize(vertex.normal);
             }
 
+            glm::dvec3 n = glm::normalize(vertex.normal);
             glm::dvec3 l = glm::normalize(-lightDir);
-            glm::dvec3 v = glm::normalize(cameraPos - vp);
-            glm::dvec3 r = glm::reflect(l, n);
+            glm::dvec3 v = glm::normalize(cameraPos - vertex.position);
+            glm::dvec3 r = glm::reflect(l, vertex.normal);
 
-            double nDotL = glm::dot(n, l);
-            nDotL = glm::clamp(nDotL, 0.0, 1.0);
-
-            double vDotR = glm::dot(v, r);
-            vDotR = glm::clamp(vDotR, 0.0, 1.0);
-
-            glm::dvec3 ambient = material.ambient;
-            if (material.ambientSampler.isValid())
-                ambient = material.ambientSampler.sampleRgba(tc);
-
-            glm::dvec3 diffuse = material.diffuse;
-            if (material.diffuseFromVertex)
-                diffuse = color;
-            if (material.diffuseSampler.isValid())
-                diffuse = material.diffuseSampler.sampleRgba(tc);
-            diffuse *= nDotL;
-
-            glm::dvec3 specular = material.specular;
-            if (material.specularSampler.isValid())
-                specular = material.specularSampler.sampleRgba(tc);
-            specular = specular * std::pow(vDotR, material.specularPower);
-
-            color = glm::dvec4(ambient + diffuse + specular, 1.0);
-            color.a = 1.0;
-
+            glm::dvec4 color = litVertex(vertex, material,
+                                         n, v, l, r);
             self->setRgba(x, y, color);
         }
     }
@@ -222,6 +163,106 @@ struct TrianglePrimitiveRasterizer::Impl
         const glm::dvec2 bb = b;
         const glm::dvec2 cc = c;
         return ((cc.x - aa.x) * (bb.y - aa.y) - (cc.y - aa.y) * (bb.x - aa.x));
+    }
+
+    /* ------------------------------------------------------------ *
+       Interpolates triangle vertex
+        * transform vertex position, normal, binormal and tangets to world space
+        * applies perspective correction to values
+        * interpolates vertex based on barycentric weights
+     * ------------------------------------------------------------ */
+    Vertex interpolatedVertex(
+        const Triangle& tri,
+        double w1, double w2, double w3,
+        double z1, double z2, double z3,
+        double z,
+        const glm::dmat4& modelMatrix,
+        const glm::dmat3& normalMatrix) const
+    {
+        Vertex out;
+
+        glm::dvec3 p1 = modelMatrix * glm::dvec4(tri.p1.position, 1.0) / z1;
+        glm::dvec3 p2 = modelMatrix * glm::dvec4(tri.p2.position, 1.0) / z2;
+        glm::dvec3 p3 = modelMatrix * glm::dvec4(tri.p3.position, 1.0) / z3;
+        out.position  = p1  * w1 * z +
+                        p2  * w2 * z +
+                        p3  * w3 * z;
+
+        glm::dvec4 c1 = tri.p1.color / z1;
+        glm::dvec4 c2 = tri.p2.color / z2;
+        glm::dvec4 c3 = tri.p3.color / z2;
+        out.color     = c1  * w1 * z +
+                        c2  * w2 * z +
+                        c3  * w3 * z;
+
+        glm::dvec2 tc1  = tri.p1.texCoord / z1;
+        glm::dvec2 tc2  = tri.p2.texCoord / z2;
+        glm::dvec2 tc3  = tri.p3.texCoord / z3;
+        out.texCoord    = tc1  * w1 * z +
+                          tc2  * w2 * z +
+                          tc3  * w3 * z;
+
+        glm::dvec3 n1  = glm::normalize((normalMatrix * tri.p1.normal) / z1);
+        glm::dvec3 n2  = glm::normalize((normalMatrix * tri.p2.normal) / z2);
+        glm::dvec3 n3  = glm::normalize((normalMatrix * tri.p3.normal) / z3);
+        out.normal     = n1  * w1 * z +
+                         n2  * w2 * z +
+                         n3  * w3 * z;
+
+        glm::dvec3 t1  =  glm::normalize(normalMatrix * tri.p1.tangent) / z1;
+        glm::dvec3 t2  =  glm::normalize(normalMatrix * tri.p2.tangent) / z2;
+        glm::dvec3 t3  =  glm::normalize(normalMatrix * tri.p3.tangent) / z3;
+        out.tangent    = t1  * w1 * z +
+                         t2  * w2 * z +
+                         t3  * w3 * z;
+
+        glm::dvec3 b1  =  glm::normalize(normalMatrix * tri.p1.bitangent) / z1;
+        glm::dvec3 b2  =  glm::normalize(normalMatrix * tri.p2.bitangent) / z2;
+        glm::dvec3 b3  =  glm::normalize(normalMatrix * tri.p3.bitangent) / z3;
+        out.bitangent  = b1  * w1 * z +
+                         b2  * w2 * z +
+                         b3  * w3 * z;
+        // re-orthogonalize T with respect to N
+        out.tangent   = normalize(out.tangent- dot(out.tangent, out.normal) * out.normal);
+        out.bitangent = cross(out.normal, out.tangent);
+
+        return out;
+    }
+
+    glm::dvec4 litVertex(const Vertex& vertex,
+                         const Material& material,
+                         const glm::dvec3& n,
+                         const glm::dvec3& v,
+                         const glm::dvec3& l,
+                         const glm::dvec3& r) const
+    {
+        double nDotL = glm::dot(n, l);
+        nDotL = glm::clamp(nDotL, 0.0, 1.0);
+
+        double vDotR = glm::dot(v, r);
+        vDotR = glm::clamp(vDotR, 0.0, 1.0);
+
+        glm::dvec3 ambient = material.ambient;
+        if (material.ambientSampler.isValid())
+            ambient = material.ambientSampler.sampleRgba(vertex.texCoord);
+
+        glm::dvec3 diffuse = material.diffuse;
+        if (material.diffuseFromVertex)
+            diffuse = vertex.color;
+        if (material.diffuseSampler.isValid())
+            diffuse = material.diffuseSampler.sampleRgba(vertex.texCoord);
+        diffuse *= nDotL;
+
+        double specularPower = material.specularPower;
+        if (material.specularPowerSampler.isValid())
+            specularPower = material.specularPowerSampler.sampleRgba(vertex.texCoord).x;
+
+        glm::dvec3 specular = material.specular;
+        if (material.specularSampler.isValid())
+            specular = material.specularSampler.sampleRgba(vertex.texCoord);
+        specular = specular * std::pow(vDotR, specularPower);
+
+        return glm::dvec4(diffuse + specular, 1.0);
     }
 
     TrianglePrimitiveRasterizer* self;

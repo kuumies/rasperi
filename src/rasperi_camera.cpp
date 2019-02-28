@@ -15,8 +15,9 @@ namespace rasperi
 glm::dmat4 Camera::viewMatrix() const
 {
     glm::dmat4 viewMatrix = glm::dmat4(1.0);
-    viewMatrix = glm::translate(viewMatrix, -position);
+    viewMatrix = glm::translate(viewMatrix, glm::dvec3(0, 0, -viewDistance));
     viewMatrix *= glm::mat4_cast(rotation);
+    viewMatrix = glm::translate(viewMatrix, -position);
     return viewMatrix;
 }
 

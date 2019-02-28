@@ -350,10 +350,10 @@ bool Controller::importModel(const QString& filepath)
             bb.update(v.position);
 
     // Model center point to origo
-    glm::dvec3 center = (bb.max - bb.min) * 0.5;
-    glm::dvec3 toOrigo = -center;
+    glm::dvec3 center = (bb.max + bb.min) * 0.5;
+    glm::dvec3 toOrigo = center - glm::dvec3(0.0);
     for (const Model& model : models)
-        model.transform->position = toOrigo;
+        model.transform->position = -toOrigo;
 
     // Fit camera to view the whole model
     glm::dvec3 size = bb.max - bb.min;
@@ -366,13 +366,13 @@ bool Controller::importModel(const QString& filepath)
 
 //    toOrigo.z = 100.0;
 //    std::cout << __FUNCTION__          << ": "
-//              << glm::to_string(size)  << ", "
+//              << glm::to_string(bb.min)  << ", "
+//              << glm::to_string(bb.max)  << ", "
 //              << glm::to_string(center)
 //              << std::endl;
 
-    //impl->camera->rotation = glm::quat();
-    impl->cameraController->setZoomAmount(size.z / 10.0);
-    impl->camera->position = glm::dvec3(0.0, 0.0, distance);
+    impl->cameraController->setZoomAmount(size.z / 5.0);
+    impl->camera->viewDistance = distance;
     impl->camera->farPlane = distance * 2;
 
     impl->models = models;

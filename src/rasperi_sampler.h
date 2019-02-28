@@ -28,7 +28,7 @@ public:
 
     Sampler();
     Sampler(const QImage& map,
-            Filter filter = Filter::Nearest,
+            Filter filter = Filter::Linear,
             bool linearizeGamma = false);
 
     bool isValid() const;

@@ -74,7 +74,10 @@ struct Rasterizer::Impl
                 i2 >= triangleMesh->vertices.size() ||
                 i3 >= triangleMesh->vertices.size())
             {
-                std::cout << "invalid index" << std::endl;
+                std::cout << "invalid index"
+                          << i1 << ", " << i2 << ", " << i3 << " ? "
+                          << triangleMesh->vertices.size()
+                          << std::endl;
                 continue;
             }
 
