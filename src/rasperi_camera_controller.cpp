@@ -100,7 +100,7 @@ void CameraController::setMousePress(QMouseEvent* e)
     {
         impl->rotate    = true;
         impl->rotatePos = e->pos();
-        impl->controller->rasterize(false);
+        impl->controller->rasterize(true);
     }
 }
 
@@ -146,7 +146,7 @@ void CameraController::setMouseMove(QMouseEvent* e)
         rotation = glm::angleAxis(yaw,   yawAxis)   * rotation;
         rotation = glm::angleAxis(pitch, pitchAxis) * rotation;
         impl->controller->camera()->rotation = rotation;
-        impl->controller->rasterize(false);
+        impl->controller->rasterize(true);
     }
 }
 

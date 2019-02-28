@@ -22,7 +22,7 @@ struct Material
     glm::dvec3 ambient   = glm::dvec3(0.05);
     glm::dvec3 diffuse   = glm::dvec3(0.0);
     glm::dvec3 specular  = glm::dvec3(0.3);
-    double specularPower = 4.0;
+    double specularPower = 64.0;
 
     Sampler ambientSampler;
     Sampler diffuseSampler;

@@ -145,7 +145,7 @@ struct TrianglePrimitiveRasterizer::Impl
             glm::dvec3 n = glm::normalize(vertex.normal);
             glm::dvec3 l = glm::normalize(-lightDir);
             glm::dvec3 v = glm::normalize(cameraPos - vertex.position);
-            glm::dvec3 r = glm::reflect(l, vertex.normal);
+            glm::dvec3 r = glm::reflect(-l, n);
 
             glm::dvec4 color = litVertex(vertex, material,
                                          n, v, l, r);
