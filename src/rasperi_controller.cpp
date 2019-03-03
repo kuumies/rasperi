@@ -15,6 +15,7 @@
 #include "rasperi_model_importer.h"
 #include "rasperi_pbr_ibl_irradiance.h"
 #include "rasperi_pbr_ibl_prefilter.h"
+#include "rasperi_pbr_ibl_brdf_integration.h"
 #include "rasperi_rasterizer.h"
 #include "rasperi_texture_2d.h"
 #include "rasperi_texture_cube.h"
@@ -315,16 +316,32 @@ struct Controller::Impl
 //        if (pix != pix2)
 //            qDebug() << "FUCK";
 
-//        QDir dir("/temp/");
-        //PbrIbl pbrIblIrradiance(512);
-        //pbrIblIrradiance.run(imageWidget.bgImage());
+        QDir dir("/temp/");
+
+        PbrIblIrradiance pbrIblIrradiance(512);
+        if (!pbrIblIrradiance.read(dir))
+        {
+            pbrIblIrradiance.run(imageWidget.bgImage());
+            pbrIblIrradiance.write(dir);
+        }
 
         PbrIblPrefilter pbrIblPrefilter(512);
-        pbrIblPrefilter.run(imageWidget.bgImage());
+        if (!pbrIblPrefilter.read(dir))
+        {
+            pbrIblPrefilter.run(imageWidget.bgImage());
+            pbrIblPrefilter.write(dir);
+        }
 
-//        if (!pbrIbl.read(dir))
-//        {
-//        }
+        PbrIblBrdfIntegration pbrIblBrdfIntegration(512);
+        if (!pbrIblBrdfIntegration.read(dir))
+        {
+            pbrIblBrdfIntegration.run();
+            pbrIblBrdfIntegration.write(dir);
+        }
+
+        pbrIblIrradiance.irradianceCubemap.toQImage().save("/temp/00_irradianceCubemap.bmp");
+        pbrIblPrefilter.prefilterCubemap.toQImage().save("/temp/00_prefilterCubemap.bmp");
+        pbrIblBrdfIntegration.brdfIntegration2dMap.toQImage().save("/temp/00_brdfIntegration2dMap.bmp");
     }
 
 //    /* ------------------------------------------------------------ *

@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The definition of kuu::rasperi::Mipmaps class.
+   The definition of kuu::rasperi::MipmapGenerator class.
  * ---------------------------------------------------------------- */
  
 #pragma once

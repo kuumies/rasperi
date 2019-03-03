@@ -59,6 +59,9 @@ public:
 
         if (floatingPoint)
         {
+            int channels = C;
+            if (channels == 2 || channels == 3)
+                channels = 4;
             std::vector<uchar> data;
             for (int y = 0; y < d->height; ++y)
             for (int x = 0; x < d->width;  ++x)
@@ -68,10 +71,16 @@ public:
                     T v = d->pixels[y * d->width * C + C * x + c];
                     v = v / (v + T(1.0)); // tone mapping HDR -> SDR
                     data.push_back(qRound(v * 255.0));
+                    if (channels != C)
+                    {
+                        if (channels == 2)
+                            data.push_back(0); // b
+                        data.push_back(255);   // a
+                    }
                 }
             }
 
-            switch(C)
+            switch(channels)
             {
                 case 1: return QImage(data.data(), d->width, d->height, QImage::Format_Grayscale8).copy();
                 case 4: return QImage(data.data(), d->width, d->height, QImage::Format_RGB32).copy();
@@ -148,12 +157,17 @@ public:
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
     int mipmapCount() const
-    { return int(d->mipmaps.size()); }
+    { return 1 + int(d->mipmaps.size()); }
 
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
-    Texture2D<T, C> mipmap(size_t index) const
-    { return d->mipmaps[index]; }
+    Texture2D<T, C>& mipmap(size_t index)
+    {
+        if (index == 0)
+            return *this;
+        else
+            return d->mipmaps[index - 1];
+    }
 
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
@@ -163,9 +177,16 @@ public:
         if (!file.open(QIODevice::WriteOnly))
             return false;
 
+        QDataStream ds(&file);
+        return write(ds);
+    }
+
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
+    bool write(QDataStream& ds)
+    {
         const int byteCount = int(d->pixels.size()) * sizeof(T);
 
-        QDataStream ds(&file);
         ds << MAGIC_NUMBER;
         ds << d->width;
         ds << d->height;
@@ -173,6 +194,11 @@ public:
         ds << byteCount;
         char* data = reinterpret_cast<char*>(d->pixels.data());
         ds.writeRawData(data, byteCount);
+
+        ds << int(d->mipmaps.size());
+        for (int i = 0; i < d->mipmaps.size(); ++i)
+            d->mipmaps[i].write(ds);
+
         return true;
     }
 
@@ -185,7 +211,13 @@ public:
             return false;
 
         QDataStream ds(&file);
+        return read(ds);
+    }
 
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
+    bool read(QDataStream& ds)
+    {
         int magic = 0;
         ds >> magic;
         if (magic != MAGIC_NUMBER)
@@ -211,6 +243,12 @@ public:
 
         d->width  = w;
         d->height = h;
+
+        int mipmapCount = 0;
+        ds >> mipmapCount;
+        d->mipmaps.resize(mipmapCount);
+        for (int i = 0; i < mipmapCount; ++i)
+            d->mipmaps[i].read(ds);
 
         return true;
     }

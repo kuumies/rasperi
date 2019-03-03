@@ -93,7 +93,8 @@ public:
         // --------------------------------------------------------
         // Rasterize
 
-        for (size_t face = 0; face < 6; ++face)
+        #pragma omp parallel for
+        for (int face = 0; face < 6; ++face)
         {
             std::cout << "Process face " << face << std::endl;
 
@@ -123,7 +124,7 @@ public:
                 int xmax = std::max(0, std::min(w - 1, int(std::floor(bb.max.x))));
                 int ymax = std::max(0, std::min(h - 1, int(std::floor(bb.max.y))));
 
-//                #pragma omp parallel for
+
                 for (int y = ymin; y <= ymax; ++y)
                 for (int x = xmin; x <= xmax; ++x)
                 {
@@ -213,165 +214,6 @@ public:
 };
 
 /* ---------------------------------------------------------------- *
-   https://en.wikipedia.org/wiki/Cube_mapping
- * ---------------------------------------------------------------- */
-class CubeMap
-{
-public:
-    /* ------------------------------------------------------------ *
-     * ------------------------------------------------------------ */
-    CubeMap(int faceSize)
-        : w(faceSize)
-        , h(faceSize)
-        //, data(4 * faceSize, 3 * faceSize, QImage::Format_RGB32)
-    {
-        for (size_t i = 0; i < faces.size(); ++i)
-        {
-            faces[i] = QImage(faceSize, faceSize, QImage::Format_RGB32);
-            faces[i].fill(qRgba(255, 255, 255, 255));
-        }
-    }
-
-    /* ------------------------------------------------------------ *
-     * ------------------------------------------------------------ */
-    void setFaceData(const QImage& map)
-    {
-        for (size_t i = 0; i < faces.size(); ++i)
-        {
-            QPainter p(&faces[i]);
-            p.drawImage(faces[i].rect(), map.scaled(w, h, Qt::KeepAspectRatioByExpanding), faces[i].rect());
-            //p.setBrush(QBrush(map));
-            //p.drawRect(faces[i].rect());
-        }
-    }
-
-    /* ------------------------------------------------------------ *
-     * ------------------------------------------------------------ */
-    void writeToFile(QString path)
-    {
-        QImage data(4 * w, 3 * h, QImage::Format_RGB32);
-        data.fill(0);
-        QPainter p(&data);
-        p.drawImage(QRect(    w,     0, w, h), faces[0], QRect(0, 0, w, h)); // +Y
-        p.drawImage(QRect(    0,     h, w, h), faces[1], QRect(0, 0, w, h)); // -X
-        p.drawImage(QRect(    w,     h, w, h), faces[2], QRect(0, 0, w, h)); // +Z
-        p.drawImage(QRect(2 * w,     h, w, h), faces[3], QRect(0, 0, w, h)); // +X
-        p.drawImage(QRect(3 * w,     h, w, h), faces[4], QRect(0, 0, w, h)); // -Z
-        p.drawImage(QRect(    w, 2 * h, w, h), faces[5], QRect(0, 0, w, h)); // -Z
-        data.save(path);
-    }
-
-    /* ------------------------------------------------------------ *
-     * ------------------------------------------------------------ */
-    glm::dvec3 uvToXyz(int index, double u, double v) const
-    {
-        // convert range 0 to 1 to -1 to 1
-        double uc = 2.0 * u - 1.0;
-        double vc = 2.0 * v - 1.0;
-
-        glm::dvec3 out;
-        switch (index)
-        {
-            case 0: out.x =  1.0; out.y =   vc; out.z =  -uc; break;	// POSITIVE X
-            case 1: out.x = -1.0; out.y =   vc; out.z =   uc; break;	// NEGATIVE X
-            case 2: out.x =   uc; out.y =  1.0; out.z =  -vc; break;	// POSITIVE Y
-            case 3: out.x =   uc; out.y = -1.0; out.z =   vc; break;	// NEGATIVE Y
-            case 4: out.x =   uc; out.y =   vc; out.z =  1.0; break;	// POSITIVE Z
-            case 5: out.x =  -uc; out.y =   vc; out.z = -1.0; break;	// NEGATIVE Z
-        }
-        return out;
-    }
-
-    /* ------------------------------------------------------------ *
-     * ------------------------------------------------------------ */
-    std::pair<int, glm::dvec2> xyzToUv(const glm::dvec3& p)
-    {
-        double absX = fabs(p.x);
-        double absY = fabs(p.y);
-        double absZ = fabs(p.z);
-
-        int isXPositive = p.x > 0 ? 1 : 0;
-        int isYPositive = p.y > 0 ? 1 : 0;
-        int isZPositive = p.z > 0 ? 1 : 0;
-
-        double maxAxis = 0.0, uc = 0.0, vc = 0.0;
-
-        int index = 0;
-        // POSITIVE X
-        //if (isXPositive && absX >= absY && absX >= absZ)
-        {
-            // u (0 to 1) goes from +z to -z
-            // v (0 to 1) goes from -y to +y
-            maxAxis = absX;
-            uc = -p.z;
-            vc =  p.y;
-            index = 0;
-        }
-
-        // NEGATIVE X
-        if (!isXPositive && absX >= absY && absX >= absZ)
-        {
-            // u (0 to 1) goes from -z to +z
-            // v (0 to 1) goes from -y to +y
-            maxAxis = absX;
-            uc = p.z;
-            vc = p.y;
-            index = 1;
-        }
-        // POSITIVE Y
-        if (isYPositive && absY >= absX && absY >= absZ)
-        {
-            // u (0 to 1) goes from -x to +x
-            // v (0 to 1) goes from +z to -z
-            maxAxis = absY;
-            uc =  p.x;
-            vc = -p.z;
-            index = 2;
-        }
-        // NEGATIVE Y
-        if (!isYPositive && absY >= absX && absY >= absZ)
-        {
-            // u (0 to 1) goes from -x to +x
-            // v (0 to 1) goes from -z to +z
-            maxAxis = absY;
-            uc = p.x;
-            vc = p.z;
-            index = 3;
-        }
-        // POSITIVE Z
-        if (isZPositive && absZ >= absX && absZ >= absY)
-        {
-            // u (0 to 1) goes from -x to +x
-            // v (0 to 1) goes from -y to +y
-            maxAxis = absZ;
-            uc = p.x;
-            vc = p.y;
-            index = 4;
-        }
-        // NEGATIVE Z
-        if (!isZPositive && absZ >= absX && absZ >= absY)
-        {
-            // u (0 to 1) goes from +x to -x
-            // v (0 to 1) goes from -y to +y
-            maxAxis = absZ;
-            uc = -p.x;
-            vc =  p.y;
-            index = 5;
-        }
-
-        // Convert range from -1 to 1 to 0 to 1
-        std::pair<int, glm::dvec2> out;
-        out.first = index;
-        out.second.x = 0.5 * (uc / maxAxis + 1.0);
-        out.second.y = 0.5 * (vc / maxAxis + 1.0);
-        return out;
-    }
-    int w;
-    int h;
-    std::array<QImage, 6> faces;
-};
-
-/* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
 struct PbrIblIrradiance::Impl
 {
@@ -430,34 +272,8 @@ struct PbrIblIrradiance::Impl
                    face.bits(),
                    size_t(face.sizeInBytes()));
         }
-        bgCubeMap.toQImage().save("/temp/mmm.bmp");
 
-        // --------------------------------------------------------
-        // Create NDC cube
-
-        std::vector<glm::dvec3> vertexData =
-        {
-            { -1,-1,-1 },
-            {  1, 1,-1 },
-            {  1,-1,-1 },
-            { -1, 1,-1 },
-            { -1,-1, 1 },
-            {  1,-1, 1 },
-            {  1, 1, 1 },
-            { -1, 1, 1 },
-        };
-
-        std::vector<unsigned> indexData
-        {
-            2,1,0, 3,0,1,
-            6,5,4, 4,7,6,
-            0,3,7, 7,4,0,
-            1,2,6, 5,6,2,
-            5,2,0, 0,4,5,
-            1,6,3, 7,3,6,
-        };
-
-        // --------------------------------------------------------
+         // --------------------------------------------------------
         // Render irradiance map
 
         auto irradienceCallback = [&](const glm::dvec3& p)
@@ -468,8 +284,8 @@ struct PbrIblIrradiance::Impl
                        up    = glm::cross(normal, right);
 
             glm::dvec3 irradiance = glm::dvec3(0.0);
-            //double sampleDelta = 0.025;
-            double sampleDelta = 0.4;
+            double sampleDelta = 0.025;
+            //double sampleDelta = 0.4;
             double nrSamples = 0.0;
             for(double  phi = 0.0; phi < 2.0 * M_PI; phi += sampleDelta)
             {
@@ -533,22 +349,14 @@ struct PbrIblIrradiance::Impl
      * ---------------------------------------------------------------- */
     bool read(const QDir& dir)
     {
-        bool ok = true;
-        //ok &= self->irradiance.read(dir.absoluteFilePath("irradiance.dbl"));
-        //ok &= self->prefilter.read(dir.absoluteFilePath("prefilter.dbl"));
-        //ok &= self->brdfIntegration.read(dir.absoluteFilePath("brdfIntegration.dbl"));
-        return ok;
+        return self->irradianceCubemap.read(dir.absoluteFilePath("pbr_ibl_irradiance.kuu"));
     }
 
     /* ---------------------------------------------------------------- *
      * ---------------------------------------------------------------- */
     bool write(const QDir& dir)
     {
-        bool ok = true;
-        //ok &= self->irradiance.write(dir.absoluteFilePath("irradiance.dbl"));
-        //ok &= self->prefilter.write(dir.absoluteFilePath("prefilter.dbl"));
-        //ok &= self->brdfIntegration.write(dir.absoluteFilePath("brdfIntegration.dbl"));
-        return ok;
+        return self->irradianceCubemap.write(dir.absoluteFilePath("pbr_ibl_irradiance.kuu"));
     }
 
     PbrIblIrradiance* self;

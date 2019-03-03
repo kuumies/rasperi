@@ -4,22 +4,9 @@
  * ---------------------------------------------------------------- */
  
 #include "rasperi_pbr_ibl_prefilter.h"
-#include <array>
 #include <functional>
 #include <iostream>
-#include <glm/gtc/matrix_inverse.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/quaternion.hpp>
-#include <glm/gtx/string_cast.hpp>
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-#include <QtCore/QDataStream>
-#include <QtCore/QFile>
-#include <QtGui/QPainter>
 #include "rasperi_cube_camera.h"
-#include "rasperi_framebuffer.h"
-#include "rasperi_sampler.h"
 #include "rasperi_texture_cube.h"
 #include "rasperi_texture_cube_mapping.h"
 
@@ -58,7 +45,7 @@ public:
         glm::dvec2 max;
     };
 
-    using Callback = std::function<void(glm::dvec3, double, int, int)>;
+    using Callback = std::function<void(glm::dvec3, double, int)>;
 
     int w;
     int h;
@@ -110,6 +97,8 @@ public:
 
         for (int mipmap = 0; mipmap < mipmapCount; ++mipmap)
         {
+            std::cout << "Processing mipmap " << mipmap << std::endl;
+
             for (size_t face = 0; face < 6; ++face)
             {
                 std::cout << "Process face " << face << std::endl;
@@ -181,7 +170,7 @@ public:
                                        p2  * w2 * z +
                                        p3  * w3 * z;
 
-                        callback(p, roughness, mipmap, face);
+                        callback(p, roughness, mipmap);
                     }
                 }
             }
@@ -280,34 +269,10 @@ struct PbrIblPrefilter::Impl
             QPainter p(&face);
             p.drawImage(face.rect(), bgMapScaled, face.rect());
 
-            memcpy(bgCubeMap.face(f).pixels().data(), face.bits(), face.sizeInBytes());
+            memcpy(bgCubeMap.face(f).pixels().data(),
+                   face.bits(),
+                   size_t(face.sizeInBytes()));
         }
-        bgCubeMap.toQImage().save("/temp/mmm.bmp");
-
-        // --------------------------------------------------------
-        // Create NDC cube
-
-        std::vector<glm::dvec3> vertexData =
-        {
-            { -1,-1,-1 },
-            {  1, 1,-1 },
-            {  1,-1,-1 },
-            { -1, 1,-1 },
-            { -1,-1, 1 },
-            {  1,-1, 1 },
-            {  1, 1, 1 },
-            { -1, 1, 1 },
-        };
-
-        std::vector<unsigned> indexData
-        {
-            2,1,0, 3,0,1,
-            6,5,4, 4,7,6,
-            0,3,7, 7,4,0,
-            1,2,6, 5,6,2,
-            5,2,0, 0,4,5,
-            1,6,3, 7,3,6,
-        };
 
         // --------------------------------------------------------
         // Render prefilter map
@@ -315,111 +280,51 @@ struct PbrIblPrefilter::Impl
         auto prefilterCallback = [&](
                 const glm::dvec3& p,
                 double roughness,
-                int mipmap,
-                int face)
+                int mipmap)
         {
-            Texture2D<double, 4>& tex =
-                self->prefilterCubemap.face(face).mipmap(size_t(mipmap));
+            glm::dvec3 n = normalize(p);
+            glm::dvec3 r = n;
+            glm::dvec3 v = r;
 
-#if 0
-            /* ---------------------------------------------------------------- *
-             * ---------------------------------------------------------------- */
-            float radicalInverse_VdC(uint bits)
-            {
-                bits = (bits << 16u) | (bits >> 16u);
-                bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
-                bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
-                bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
-                bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
-                return float(bits) * 2.3283064365386963e-10; // / 0x100000000
-            }
-
-            /* ---------------------------------------------------------------- *
-             * ---------------------------------------------------------------- */
-            vec2 hammersley(uint i, uint n)
-            {
-                return vec2(float(i)/float(n), radicalInverse_VdC(i));
-            }
-
-            /* ---------------------------------------------------------------- *
-             * ---------------------------------------------------------------- */
-            vec3 importanceSampleGGX(vec2 xi, vec3 n, float roughness)
-            {
-                float a = roughness*roughness;
-
-                float phi = 2.0 * PI * xi.x;
-                float cosTheta = sqrt((1.0 - xi.y) / (1.0 + (a*a - 1.0) * xi.y));
-                float sinTheta = sqrt(1.0 - cosTheta*cosTheta);
-
-                // from spherical coordinates to cartesian coordinates
-                vec3 h;
-                h.x = cos(phi) * sinTheta;
-                h.y = sin(phi) * sinTheta;
-                h.z = cosTheta;
-
-                // from tangent-space vector to world-space sample vector
-                vec3 up        = abs(n.z) < 0.999 ? vec3(0.0, 0.0, 1.0)
-                                                  : vec3(1.0, 0.0, 0.0);
-                vec3 tangent   = normalize(cross(up, n));
-                vec3 bitangent = cross(n, tangent);
-
-                vec3 sampleVec = tangent * h.x + bitangent * h.y + n * h.z;
-                return normalize(sampleVec);
-            }
-
-            /* ---------------------------------------------------------------- *
-               Cook-Torrance specular BRDF (GGX) normal distribution function.
-             * ---------------------------------------------------------------- */
-            float brdfNormalDistributionGGX(float nDotH, float a)
-            {
-                float nDotH2 = nDotH * nDotH;
-                float a2     = a * a;
-                float q      = (nDotH2 * (a2 -1.0) + 1.0);
-                return a2 / (PI * q * q);
-            }
-
-            vec3 n = normalize(texCoord);
-            vec3 r = n;
-            vec3 v = r;
-
-            const uint SAMPLE_COUNT = 2048u * 1u;
-            float totalWeight = 0.0;
-            vec3 prefilteredColor = vec3(0.0);
+            //const uint SAMPLE_COUNT = 4;
+            const uint SAMPLE_COUNT = 1024u;
+            double totalWeight = 0.0;
+            glm::dvec3 prefilteredColor = glm::dvec3(0.0);
             for(uint i = 0u; i < SAMPLE_COUNT; ++i)
             {
-                vec2 xi = hammersley(i, SAMPLE_COUNT);
-                vec3 h  = importanceSampleGGX(xi, n, roughness);
-                vec3 l  = normalize(2.0 * dot(v, h) * h - v);
+                glm::dvec2 xi = hammersley(i, SAMPLE_COUNT);
+                glm::dvec3 h  = importanceSampleGGX(xi, n, roughness);
+                glm::dvec3 l  = normalize(2.0 * dot(v, h) * h - v);
 
-                float nDotL = max(dot(n, l), 0.0);
+                double nDotL = glm::max(glm::dot(n, l), 0.0);
                 if(nDotL > 0.0)
                 {
-                    float nDotH = max(dot(n, h), 0.0);
-                    float hDotV = max(dot(h, v), 0.0);
-                    float d   = brdfNormalDistributionGGX(nDotH, roughness);
-                    float pdf = (d * nDotH / (4.0 * hDotV)) + 0.0001;
-
-                    // resolution of source cubemap (per face)
-                    float resolution = 512.0;
-                    float saTexel  = 4.0 *
-                            PI / (6.0 * resolution * resolution);
-                    float saSample = 1.0 /
-                            (float(SAMPLE_COUNT) * pdf + 0.0001);
-
-                    float mipLevel = roughness == 0.0
-                            ? 0.0
-                            : 0.5 * log2(saSample / saTexel);
-
-                    prefilteredColor +=
-                        textureLod(skyboxMap, l, mipLevel).rgb * nDotL;
-                    //prefilteredColor += texture(skyboxMap, l).rgb * nDotL;
-                    totalWeight      += nDotL;
+                    // Sample background
+                    const texture_cube_mapping::TextureCoordinate tc =
+                        texture_cube_mapping::mapPoint(l);
+                    const size_t faceIndex = size_t(tc.faceIndex);
+                    const std::array<uchar, 4> pixel =
+                        bgCubeMap.face(faceIndex).pixel(tc.uv.x, tc.uv.y);
+                    prefilteredColor += glm::dvec3(
+                            pixel[0] / 255.0,
+                            pixel[1] / 255.0,
+                            pixel[2] / 255.0) * nDotL;
+                    totalWeight += nDotL;
                 }
             }
             prefilteredColor = prefilteredColor / totalWeight;
+            std::array<double, 4> pix = { prefilteredColor.r,
+                                          prefilteredColor.g,
+                                          prefilteredColor.b,
+                                          1.0 };
 
-            outColor = vec4(prefilteredColor, 1.0);0
-#endif
+            const texture_cube_mapping::TextureCoordinate tc =
+                texture_cube_mapping::mapPoint(n);
+            const size_t faceIndex = size_t(tc.faceIndex);
+
+            Texture2D<double, 4>& tex =
+                self->prefilterCubemap.face(size_t(faceIndex)).mipmap(size_t(mipmap));
+            tex.setPixel(tc.uv.x, tc.uv.y, pix);
         };
 
         if (!self->prefilterCubemap.generateMipmaps())
@@ -434,24 +339,80 @@ struct PbrIblPrefilter::Impl
                                            mipmapCount,
                                            prefilterCallback);
         rasterizer.run();
+
+        for (int i = 0; i < mipmapCount; ++i)
+            self->prefilterCubemap.toQImage(i).save(QString("/temp/00_prefilter_%1.bmp").arg(i));
+    }
+
+    /* ---------------------------------------------------------------- *
+     * ---------------------------------------------------------------- */
+    double radicalInverse_VdC(uint bits)
+    {
+        bits = (bits << 16u) | (bits >> 16u);
+        bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+        bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+        bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+        bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+        return double(bits) * 2.3283064365386963e-10; // / 0x100000000
+    }
+
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
+    glm::dvec2 hammersley(uint i, uint n)
+    {
+        return glm::dvec2(double(i) / double(n), radicalInverse_VdC(i));
+    }
+
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
+    glm::dvec3 importanceSampleGGX(glm::dvec2 xi, glm::dvec3 n, double roughness)
+    {
+        double a = roughness * roughness;
+
+        double phi = 2.0 * M_PI * xi.x;
+        double cosTheta = sqrt((1.0 - xi.y) / (1.0 + (a*a - 1.0) * xi.y));
+        double sinTheta = sqrt(1.0 - cosTheta*cosTheta);
+
+        // from spherical coordinates to cartesian coordinates
+        glm::dvec3 h;
+        h.x = cos(phi) * sinTheta;
+        h.y = sin(phi) * sinTheta;
+        h.z = cosTheta;
+
+        // from tangent-space vector to world-space sample vector
+        glm::dvec3 up = glm::abs(n.z) < 0.999
+                ? glm::dvec3(0.0, 0.0, 1.0)
+                : glm::dvec3(1.0, 0.0, 0.0);
+        glm::dvec3 tangent   = glm::normalize(glm::cross(up, n));
+        glm::dvec3 bitangent = glm::cross(n, tangent);
+
+        glm::dvec3 sampleVec = tangent * h.x + bitangent * h.y + n * h.z;
+        return normalize(sampleVec);
+    }
+
+    /* ---------------------------------------------------------------- *
+       Cook-Torrance specular BRDF (GGX) normal distribution function.
+     * ---------------------------------------------------------------- */
+    double brdfNormalDistributionGGX(double nDotH, double a)
+    {
+        double nDotH2 = nDotH * nDotH;
+        double a2     = a * a;
+        double q      = (nDotH2 * (a2 -1.0) + 1.0);
+        return a2 / (M_PI * q * q);
     }
 
     /* ---------------------------------------------------------------- *
      * ---------------------------------------------------------------- */
     bool read(const QDir& dir)
     {
-        bool ok = true;
-        //ok &= self->prefilter.read(dir.absoluteFilePath("prefilter.dbl"));
-        return ok;
+        return self->prefilterCubemap.read(dir.absoluteFilePath("pbr_ibl_prefilter.kuu"));
     }
 
     /* ---------------------------------------------------------------- *
      * ---------------------------------------------------------------- */
     bool write(const QDir& dir)
     {
-        bool ok = true;
-        //ok &= self->prefilter.write(dir.absoluteFilePath("prefilter.dbl"));
-        return ok;
+        return self->prefilterCubemap.write(dir.absoluteFilePath("pbr_ibl_prefilter.kuu"));
     }
 
     PbrIblPrefilter* self;
