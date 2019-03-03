@@ -17,10 +17,10 @@
 #include <QtCore/QDataStream>
 #include <QtCore/QFile>
 #include <QtGui/QPainter>
-#include "rasperi_double_map.h"
 #include "rasperi_framebuffer.h"
 #include "rasperi_sampler.h"
 #include "rasperi_texture_cube.h"
+#include "rasperi_texture_cube_mapping.h"
 
 namespace kuu
 {
@@ -475,16 +475,34 @@ struct PbrIbl::Impl
         : self(self)
         , size(size)
         , cubeMap(size)
-        , irradianceMap(size)
-        , depthbuffer(size, size, 1)
+        //, irradianceMap(size)
+        //, depthbuffer(size, size, 1)
     {}
 
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
     void run(const QImage& bgMap)
     {
-        map = bgMap;
-        cubeMap.setFaceData(map);
+        // --------------------------------------------------------
+        // Create SDR cubemap of background map
+
+        const QImage bgMapScaled =
+            bgMap.scaled(size, size,
+                         Qt::KeepAspectRatioByExpanding);
+
+        TextureCube<uchar, 4> bgCubeMap(size, size);
+        for (size_t f = 0; f < 6; ++f)
+        {
+            QImage face(size, size, QImage::Format_RGB32);
+            QPainter p(&face);
+            p.drawImage(face.rect(), bgMapScaled, face.rect());
+
+            memcpy(bgCubeMap.face(f).pixels().data(), face.bits(), face.sizeInBytes());
+        }
+        bgCubeMap.toQImage().save("/temp/mmm.bmp");
+
+        //map = bgMap;
+        cubeMap.setFaceData(bgMap);
 
 //        DoubleRgbCubeMap dcm2(size, size);
 //        if (!dcm2.read("/temp/irradiance.dbl"))
@@ -500,42 +518,42 @@ struct PbrIbl::Impl
         // --------------------------------------------------------
         // Create a camera for each cubemap face
 
-        std::array<glm::dquat, 6> rotations =
-        {
-            // pos x
-            glm::angleAxis(glm::radians(-90.0), glm::dvec3(0.0, 1.0, 0.0)) *
-            glm::angleAxis(glm::radians(180.0), glm::dvec3(0.0, 0.0, 1.0)),
+//        std::array<glm::dquat, 6> rotations =
+//        {
+//            // pos x
+//            glm::angleAxis(glm::radians(-90.0), glm::dvec3(0.0, 1.0, 0.0)) *
+//            glm::angleAxis(glm::radians(180.0), glm::dvec3(0.0, 0.0, 1.0)),
 
-            // neg x
-            glm::angleAxis(glm::radians( 90.0), glm::dvec3(0.0, 1.0, 0.0)) *
-            glm::angleAxis(glm::radians(180.0), glm::dvec3(0.0, 0.0, 1.0)),
+//            // neg x
+//            glm::angleAxis(glm::radians( 90.0), glm::dvec3(0.0, 1.0, 0.0)) *
+//            glm::angleAxis(glm::radians(180.0), glm::dvec3(0.0, 0.0, 1.0)),
 
-            // pos y
-            glm::angleAxis(glm::radians(-90.0), glm::dvec3(1.0, 0.0, 0.0)),
+//            // pos y
+//            glm::angleAxis(glm::radians(-90.0), glm::dvec3(1.0, 0.0, 0.0)),
 
-            // neg y
-            glm::angleAxis(glm::radians( 90.0), glm::dvec3(1.0, 0.0, 0.0)),
+//            // neg y
+//            glm::angleAxis(glm::radians( 90.0), glm::dvec3(1.0, 0.0, 0.0)),
 
-            // pos z
-            glm::angleAxis(glm::radians(180.0), glm::dvec3(0.0, 1.0, 0.0)) *
-            glm::angleAxis(glm::radians(180.0), glm::dvec3(0.0, 0.0, 1.0)),
+//            // pos z
+//            glm::angleAxis(glm::radians(180.0), glm::dvec3(0.0, 1.0, 0.0)) *
+//            glm::angleAxis(glm::radians(180.0), glm::dvec3(0.0, 0.0, 1.0)),
 
-            // neg z
-            glm::angleAxis(glm::radians(  0.0), glm::dvec3(0.0, 1.0, 0.0)) *
-            glm::angleAxis(glm::radians(180.0), glm::dvec3(0.0, 0.0, 1.0)),
-        };
+//            // neg z
+//            glm::angleAxis(glm::radians(  0.0), glm::dvec3(0.0, 1.0, 0.0)) *
+//            glm::angleAxis(glm::radians(180.0), glm::dvec3(0.0, 0.0, 1.0)),
+//        };
 
-        const double aspectRatio  = cubeMap.w / double(cubeMap.h);
-        const double fov          = M_PI * 0.5;
-        const double nearPlane    = 0.1;
-        const double farPlane     = 150.0;
+//        const double aspectRatio  = size/ double(size);
+//        const double fov          = M_PI * 0.5;
+//        const double nearPlane    = 0.1;
+//        const double farPlane     = 150.0;
 
-        std::array<std::pair<glm::dmat4, glm::dmat4>, 6> cameraMatrices;
-        for (size_t face = 0; face < 6; ++face)
-        {
-            cameraMatrices[face].first = glm::mat4_cast(rotations[face]);
-            cameraMatrices[face].second = glm::perspective(fov, aspectRatio, nearPlane, farPlane);
-        }
+//        std::array<std::pair<glm::dmat4, glm::dmat4>, 6> cameraMatrices;
+//        for (size_t face = 0; face < 6; ++face)
+//        {
+//            cameraMatrices[face].first = glm::mat4_cast(rotations[face]);
+//            cameraMatrices[face].second = glm::perspective(fov, aspectRatio, nearPlane, farPlane);
+//        }
 
         // --------------------------------------------------------
         // Create NDC cube
@@ -567,7 +585,7 @@ struct PbrIbl::Impl
 
         //DoubleRgbCubeMap dcm(size, size);
 
-        TextureCube<double, 4> irradianceCubemap(size, size);
+        //TextureCube<double, 4> irradianceCubemap(size, size);
 
         auto irradienceCallback = [&](const glm::dvec3& p)
         {
@@ -593,10 +611,18 @@ struct PbrIbl::Impl
                                            tangentSample.y * up +
                                            tangentSample.z * normal;
 
-                    std::pair<int, glm::dvec2> texCoord = cubeMap.xyzToUv(normal); // !!
-                    Sampler sampler(cubeMap.faces[texCoord.first]);
+                    texture_cube_mapping::TextureCoordinate texCoord =
+                        texture_cube_mapping::mapPoint(sampleVec); // !!
+                    Sampler sampler(cubeMap.faces[texCoord.faceIndex]);
                     sampler.setFilter(Sampler::Filter::Nearest);
-                    glm::dvec3 texColor = sampler.sampleRgba(texCoord.second) * 20.0;
+                    std::array<uchar, 4> texColors = bgCubeMap.face(texCoord.faceIndex).pixel(texCoord.uv.x, texCoord.uv.y);
+
+                    glm::dvec3 texColor(texColors[0] / 255.0,
+                                        texColors[1] / 255.0,
+                                        texColors[2] / 255.0);
+                    texColor *= 20.0;
+
+                    //texColor = sampler.sampleRgba(texCoord.uv) * 20.0;
 //                            irradiance = texColor;
                     irradiance += texColor * cos(theta) * sin(theta);
                     nrSamples++;
@@ -604,21 +630,22 @@ struct PbrIbl::Impl
             }
             irradiance = M_PI * irradiance * (1.0 / double(nrSamples));
 
-            std::pair<int, glm::dvec2> texCoord2 = cubeMap.xyzToUv(normal);
+            texture_cube_mapping::TextureCoordinate texCoord2 =
+                texture_cube_mapping::mapPoint(normal);
 
-            glm::ivec2 sc = mapCoord(texCoord2.second);
-            self->irradiance.set(size_t(texCoord2.first), sc.x, sc.y, irradiance);
+            //self->irradiance.set(size_t(texCoord2.first), sc.x, sc.y, irradiance);
 
-            size_t face = size_t(texCoord2.first);
+            glm::ivec2 sc = mapCoord(texCoord2.uv);
+            size_t face = size_t(texCoord2.faceIndex);
 
             std::array<double, 4> pix = { irradiance.r, irradiance.g, irradiance.b, 1.0 };
-            irradianceCubemap.face(face).setPixel(sc.x, sc.y, pix);
+            self->irradianceCubemap.face(face).setPixel(sc.x, sc.y, pix);
         };
 
         NdcCubeRasterizer rasterizer(size, size, irradienceCallback);
         rasterizer.run();
 
-        irradianceCubemap.toQImage().save("/temp/mega.bmp");
+        self->irradianceCubemap.toQImage().save("/temp/mega.bmp");
 
 //        // --------------------------------------------------------
 //        // Render prefilter map
@@ -930,9 +957,9 @@ struct PbrIbl::Impl
     bool read(const QDir& dir)
     {
         bool ok = true;
-        ok &= self->irradiance.read(dir.absoluteFilePath("irradiance.dbl"));
-        ok &= self->prefilter.read(dir.absoluteFilePath("prefilter.dbl"));
-        ok &= self->brdfIntegration.read(dir.absoluteFilePath("brdfIntegration.dbl"));
+        //ok &= self->irradiance.read(dir.absoluteFilePath("irradiance.dbl"));
+        //ok &= self->prefilter.read(dir.absoluteFilePath("prefilter.dbl"));
+        //ok &= self->brdfIntegration.read(dir.absoluteFilePath("brdfIntegration.dbl"));
         return ok;
     }
 
@@ -941,26 +968,26 @@ struct PbrIbl::Impl
     bool write(const QDir& dir)
     {
         bool ok = true;
-        ok &= self->irradiance.write(dir.absoluteFilePath("irradiance.dbl"));
-        ok &= self->prefilter.write(dir.absoluteFilePath("prefilter.dbl"));
-        ok &= self->brdfIntegration.write(dir.absoluteFilePath("brdfIntegration.dbl"));
+        //ok &= self->irradiance.write(dir.absoluteFilePath("irradiance.dbl"));
+        //ok &= self->prefilter.write(dir.absoluteFilePath("prefilter.dbl"));
+        //ok &= self->brdfIntegration.write(dir.absoluteFilePath("brdfIntegration.dbl"));
         return ok;
     }
 
     PbrIbl* self;
-    QImage map;
+    //QImage map;
     int size;
     CubeMap cubeMap;
-    CubeMap irradianceMap;
-    DepthFramebuffer depthbuffer;
+    //CubeMap irradianceMap;
+    //DepthFramebuffer depthbuffer;
 };
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
 PbrIbl::PbrIbl(int size)
-    : irradiance(size, size)
-    , prefilter(size, size)
-    , brdfIntegration(size, size)
+    : irradianceCubemap(size, size)
+    , prefilterCubemap(size, size)
+    , brdfIntegration2dMap(size, size)
     , impl(std::make_shared<Impl>(this, size))
 {}
 

@@ -8,7 +8,9 @@
 #include <memory>
 #include <QtCore/QDir>
 #include <QtGui/QImage>
-#include "rasperi_double_map.h"
+#include "rasperi_texture_2d.h"
+#include "rasperi_texture_cube.h"
+
 
 namespace kuu
 {
@@ -27,9 +29,9 @@ public:
 
     void run(const QImage& bgMap);
 
-    DoubleRgbCubeMap irradiance;
-    DoubleRgbCubeMap prefilter;
-    DoubleRg2dMap brdfIntegration;
+    TextureCube<double, 4> irradianceCubemap;
+    TextureCube<double, 4> prefilterCubemap;
+    Texture2D<double, 2> brdfIntegration2dMap;
 
 private:
     struct Impl;
