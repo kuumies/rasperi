@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The definition of types of kuu::rasperi::PbrIbl class.
+   The definition of types of kuu::rasperi::PbrIblIrradiance class.
  * ---------------------------------------------------------------- */
  
 #pragma once
@@ -19,10 +19,10 @@ namespace rasperi
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-class PbrIbl
+class PbrIblIrradiance
 {
 public:
-    PbrIbl(int size = 128);
+    PbrIblIrradiance(int size = 128);
 
     bool read(const QDir& dir);
     bool write(const QDir& dir);
@@ -30,8 +30,6 @@ public:
     void run(const QImage& bgMap);
 
     TextureCube<double, 4> irradianceCubemap;
-    TextureCube<double, 4> prefilterCubemap;
-    Texture2D<double, 2> brdfIntegration2dMap;
 
 private:
     struct Impl;

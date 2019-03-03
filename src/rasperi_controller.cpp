@@ -13,7 +13,8 @@
 #include "rasperi_image_widget.h"
 #include "rasperi_main_window.h"
 #include "rasperi_model_importer.h"
-#include "rasperi_pbr_ibl.h"
+#include "rasperi_pbr_ibl_irradiance.h"
+#include "rasperi_pbr_ibl_prefilter.h"
 #include "rasperi_rasterizer.h"
 #include "rasperi_texture_2d.h"
 #include "rasperi_texture_cube.h"
@@ -315,9 +316,11 @@ struct Controller::Impl
 //            qDebug() << "FUCK";
 
 //        QDir dir("/temp/");
-        PbrIbl pbrIbl(512);
-        const QImage bgMap = imageWidget.bgImage();
-        pbrIbl.run(bgMap);
+        //PbrIbl pbrIblIrradiance(512);
+        //pbrIblIrradiance.run(imageWidget.bgImage());
+
+        PbrIblPrefilter pbrIblPrefilter(512);
+        pbrIblPrefilter.run(imageWidget.bgImage());
 
 //        if (!pbrIbl.read(dir))
 //        {
