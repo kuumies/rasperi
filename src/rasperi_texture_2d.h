@@ -6,6 +6,8 @@
 #pragma once
 
 #include <memory>
+#include <QtCore/QDataStream>
+#include <QtCore/QFile>
 #include <QtGui/QImage>
 
 namespace kuu
@@ -19,6 +21,10 @@ template<typename T, int C>
 class Texture2D
 {
 public:
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
+    static const int MAGIC_NUMBER = 0xDADCAC;
+
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
     Texture2D(int width = 0,
@@ -96,6 +102,66 @@ public:
         for (int i = 0; i < C; ++i)
             out[i] = d->pixels[y * d->width * C + C * x + i];
         return out;
+    }
+
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
+    bool write(const QString& filePath)
+    {
+        QFile file(filePath);
+        if (!file.open(QIODevice::WriteOnly))
+            return false;
+
+        const int byteCount = int(d->pixels.size()) * sizeof(T);
+
+        QDataStream ds(&file);
+        ds << MAGIC_NUMBER;
+        ds << d->width;
+        ds << d->height;
+        ds << C;
+        ds << byteCount;
+        char* data = reinterpret_cast<char*>(d->pixels.data());
+        ds.writeRawData(data, byteCount);
+        return true;
+    }
+
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
+    bool read(const QString& filePath)
+    {
+        QFile file(filePath);
+        if (!file.open(QIODevice::ReadOnly))
+            return false;
+
+        QDataStream ds(&file);
+
+        int magic = 0;
+        ds >> magic;
+        if (magic != MAGIC_NUMBER)
+            return false;
+
+        int w = 0;
+        ds >> w;
+        int h = 0;
+        ds >> h;
+
+        int c = 0;
+        ds >> c;
+        if (c != C)
+            return false;
+        int byteCount = 0;
+        ds >> byteCount;
+
+        d->pixels.resize(byteCount / sizeof(T));
+
+        char* data = reinterpret_cast<char*>(d->pixels.data());
+        if (ds.readRawData(data, byteCount) == -1)
+            return false;
+
+        d->width  = w;
+        d->height = h;
+
+        return true;
     }
 
 private:

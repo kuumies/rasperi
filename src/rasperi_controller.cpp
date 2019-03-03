@@ -299,6 +299,11 @@ struct Controller::Impl
 
         Texture2D<uchar, 4> tex(img.width(), img.height(), pixels);
         tex.toQImage().save("/temp/brics22.bmp");
+        tex.write("/temp/brics22.kuu");
+
+        Texture2D<uchar, 4> tex2;
+        tex2.read("/temp/brics22.kuu");
+        tex2.toQImage().save("/temp/brics33.bmp");
 
         MipmapGenerator generator;
         generator.generate(tex);
