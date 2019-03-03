@@ -171,9 +171,24 @@ struct Controller::Impl
         , camera(std::make_shared<Camera>())
         , cameraController(std::make_shared<CameraController>(self))
         , rasterizer(720, 576)
+        , pbrIblIrradiance(512)
+        , pbrIblPrefilter(512)
+        , pbrIblBrdfIntegration(512)
     {
+        createPbrIbl();
+        loadPbrModels();
+    }
+
+    /* ------------------------------------------------------------- *
+     * ------------------------------------------------------------- */
+    void loadPbrModels()
+    {
+        const QDir modelDir     = "C:/Users/Antti Jumpponen/Downloads/4w0tjxp6ojpc-old_lantern_pbr";
+        const QDir textureDir   = modelDir.absoluteFilePath("textures");
+        const QString modelPath = modelDir.absoluteFilePath("lantern_obj.obj");
+
         ModelImporter importer;
-        auto models = importer.import("C:/Users/Antti Jumpponen/Downloads/4w0tjxp6ojpc-old_lantern_pbr/lantern_obj.obj");
+        models = importer.import(modelPath);
 
         // Model bounding box
         Impl::BoundingBox bb;
@@ -196,38 +211,32 @@ struct Controller::Impl
                                imageWidget.height()),
                     camera->fieldOfView);
 
-    //    toOrigo.z = 100.0;
-    //    std::cout << __FUNCTION__          << ": "
-    //              << glm::to_string(bb.min)  << ", "
-    //              << glm::to_string(bb.max)  << ", "
-    //              << glm::to_string(center)
-    //              << std::endl;
-
         cameraController->setZoomAmount(size.z / 5.0);
         camera->viewDistance = distance;
         camera->farPlane = distance * 2;
 
-        QString path = "C:/Users/Antti Jumpponen/Downloads/4w0tjxp6ojpc-old_lantern_pbr/textures/";
-        Model m;
-        m.material = std::make_shared<Material>();
-        m.material->model = Material::Model::Pbr;
-        m.material->pbr.albedoSampler.setMap(QImage(path + "lantern_Base_Color.jpg"));
-        m.material->pbr.albedoSampler.setLinearizeGamma(true);
-        m.material->pbr.roughnessSampler.setMap(QImage(path + "lantern_Roughness.jpg").convertToFormat(QImage::Format_Grayscale8));
-        m.material->pbr.metalnessSampler.setMap(QImage(path + "lantern_Metallic.jpg").convertToFormat(QImage::Format_Grayscale8));
-        m.material->pbr.aoSampler.setMap(QImage(path + "lantern_Mixed_AO.jpg").convertToFormat(QImage::Format_Grayscale8));
-        m.material->normalSampler.setMap(QImage(path + "lantern_Normal_OpenGL.jpg"));
-        m.material->opacitySampler.setMap(QImage(path + "lantern_Opacity.jpg").convertToFormat(QImage::Format_Grayscale8));
-        //m.material->phong.diffuseFromVertex = true;
-        //m.material->phong.diffuseSampler.setMap(QImage("/temp/my_msp.png").mirrored(true, true));
-        m.mesh = std::make_shared<Sphere>(1.0, 64, 64);
+        QString pathAlbedo    = textureDir.absoluteFilePath("lantern_Base_Color.jpg");
+        QString pathRoughness = textureDir.absoluteFilePath("lantern_Roughness.jpg");
+        QString pathMetalness = textureDir.absoluteFilePath("lantern_Metallic.jpg");
+        QString pathAo        = textureDir.absoluteFilePath("lantern_Mixed_AO.jpg");
+        QString pathNormal    = textureDir.absoluteFilePath("lantern_Normal_OpenGL.jpg");
+        QString pathOpacity   = textureDir.absoluteFilePath("lantern_Opacity.jpg");
+
+        std::shared_ptr<Material> material = std::make_shared<Material>();
+        material->model = Material::Model::Pbr;
+        material->pbr.albedoSampler.setMap(QImage(pathAlbedo));
+        material->pbr.albedoSampler.setLinearizeGamma(true);
+        material->pbr.roughnessSampler.setMap(QImage(pathRoughness).convertToFormat(QImage::Format_Grayscale8));
+        material->pbr.metalnessSampler.setMap(QImage(pathMetalness).convertToFormat(QImage::Format_Grayscale8));
+        material->pbr.aoSampler.setMap(QImage(pathAo).convertToFormat(QImage::Format_Grayscale8));
+        material->pbr.irradiance = &pbrIblIrradiance.irradianceCubemap;
+        material->pbr.prefilter  = &pbrIblPrefilter.prefilterCubemap;
+        material->pbr.brdfIntegration  = &pbrIblBrdfIntegration.brdfIntegration2dMap;
+        material->normalSampler.setMap(QImage(pathNormal));
+        material->opacitySampler.setMap(QImage(pathOpacity).convertToFormat(QImage::Format_Grayscale8));
 
         for (auto& model : models)
-        {
-            model.material = m.material;
-            this->models.push_back(model);
-        }
-        //models.push_back(m);
+            model.material = material;
     }
 
    /* ------------------------------------------------------------- *
@@ -290,49 +299,20 @@ struct Controller::Impl
     {
         std::cout << __FUNCTION__ << std::endl;
 
-//        QImage img("/temp/bricks2.jpg");
-//        std::vector<uchar> pixels;
-//        pixels.resize(img.sizeInBytes());
-//        memcpy(pixels.data(), img.bits(), img.sizeInBytes());
-//        //QImage img2(pixels.data(), img.width(), img.height(), img.format());
-
-//        TextureCube<double, 3> tc;
-//        tc.generateMipmaps();
-
-//        Texture2D<uchar, 4> tex(img.width(), img.height(), pixels);
-//        tex.toQImage().save("/temp/brics22.bmp");
-//        tex.write("/temp/brics22.kuu");
-
-//        Texture2D<uchar, 4> tex2;
-//        tex2.read("/temp/brics22.kuu");
-//        tex2.toQImage().save("/temp/brics33.bmp");
-
-//        MipmapGenerator generator;
-//        generator.generate(tex);
-
-//        std::array<uchar, 4> pix = { 255, 255, 255, 255 };
-//        tex.setPixel(5, 5, pix);
-//        std::array<uchar, 4> pix2 = tex.pixel(5, 5);
-//        if (pix != pix2)
-//            qDebug() << "FUCK";
-
         QDir dir("/temp/");
 
-        PbrIblIrradiance pbrIblIrradiance(512);
         if (!pbrIblIrradiance.read(dir))
         {
             pbrIblIrradiance.run(imageWidget.bgImage());
             pbrIblIrradiance.write(dir);
         }
 
-        PbrIblPrefilter pbrIblPrefilter(512);
         if (!pbrIblPrefilter.read(dir))
         {
             pbrIblPrefilter.run(imageWidget.bgImage());
             pbrIblPrefilter.write(dir);
         }
 
-        PbrIblBrdfIntegration pbrIblBrdfIntegration(512);
         if (!pbrIblBrdfIntegration.read(dir))
         {
             pbrIblBrdfIntegration.run();
@@ -417,6 +397,9 @@ struct Controller::Impl
     std::shared_ptr<CameraController> cameraController;
     Rasterizer rasterizer;
     std::vector<Model> models;
+    PbrIblIrradiance pbrIblIrradiance;
+    PbrIblPrefilter pbrIblPrefilter;
+    PbrIblBrdfIntegration pbrIblBrdfIntegration;
 };
 
 /* ---------------------------------------------------------------- *

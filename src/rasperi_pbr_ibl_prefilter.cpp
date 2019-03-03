@@ -99,12 +99,13 @@ public:
         {
             std::cout << "Processing mipmap " << mipmap << std::endl;
 
-            for (size_t face = 0; face < 6; ++face)
+            #pragma omp parallel for
+            for (int face = 0; face < 6; ++face)
             {
                 std::cout << "Process face " << face << std::endl;
 
                 double roughness = mipmap / double(mipmapCount - 1);
-                glm::dmat4 camera = cubeCamera.cameraMatrix(face);
+                glm::dmat4 camera = cubeCamera.cameraMatrix(size_t(face));
 
                 for (size_t i = 0; i < indexData.size(); i += 3)
                 {
@@ -130,7 +131,6 @@ public:
                     int xmax = std::max(0, std::min(w - 1, int(std::floor(bb.max.x))));
                     int ymax = std::max(0, std::min(h - 1, int(std::floor(bb.max.y))));
 
-    //                #pragma omp parallel for
                     for (int y = ymin; y <= ymax; ++y)
                     for (int x = xmin; x <= xmax; ++x)
                     {

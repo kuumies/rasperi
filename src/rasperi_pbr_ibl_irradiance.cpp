@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The implementation of types of kuu::rasperi::PbrIbl class.
+   The implementation of types of kuu::rasperi::PbrIblIrradiance class.
  * ---------------------------------------------------------------- */
  
 #include "rasperi_pbr_ibl_irradiance.h"
@@ -93,14 +93,14 @@ public:
         // --------------------------------------------------------
         // Rasterize
 
-        #pragma omp parallel for
         for (int face = 0; face < 6; ++face)
         {
             std::cout << "Process face " << face << std::endl;
 
-            glm::dmat4 camera = cubeCamera.cameraMatrix(face);
+            glm::dmat4 camera = cubeCamera.cameraMatrix(size_t(face));
 
-            for (size_t i = 0; i < indexData.size(); i += 3)
+            #pragma omp parallel for
+            for (int i = 0; i < indexData.size(); i += 3)
             {
                 glm::dvec3 v1 = vertexData[indexData[i+0]];
                 glm::dvec3 v2 = vertexData[indexData[i+1]];
@@ -123,7 +123,6 @@ public:
                 int ymin = std::max(0, std::min(h - 1, int(std::floor(bb.min.y))));
                 int xmax = std::max(0, std::min(w - 1, int(std::floor(bb.max.x))));
                 int ymax = std::max(0, std::min(h - 1, int(std::floor(bb.max.y))));
-
 
                 for (int y = ymin; y <= ymax; ++y)
                 for (int x = xmin; x <= xmax; ++x)
@@ -157,12 +156,6 @@ public:
                                        w2 * 1.0 / proj2.z +
                                        w3 * 1.0 / proj3.z);
 
-//                    // Depth test.
-//                    double d = depthbuffer.get(x, y, 0);
-//                    if (z >= d)
-//                        continue;
-//                    depthbuffer.set(x, y, 0, z);
-
                     glm::dvec3 p1 = v1 / proj1.z;
                     glm::dvec3 p2 = v2 / proj2.z;
                     glm::dvec3 p3 = v3 / proj3.z;
@@ -176,8 +169,8 @@ public:
         }
     }
 
-    /* ---------------------------------------------------------------- *
-     * ---------------------------------------------------------------- */
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
     glm::dvec3 project(const glm::dmat4& m, const glm::dvec3& p) const
     {
         const glm::dvec4 v = m * glm::dvec4(p, 1.0);
@@ -189,8 +182,8 @@ public:
         return glm::dvec3(v.x / v.w, v.y / v.w, v.z / v.w);
     }
 
-    /* ---------------------------------------------------------------- *
-     * ---------------------------------------------------------------- */
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
     glm::dvec2 viewportTransform(const glm::dvec3& p) const
     {
         const glm::ivec2 vp(w - 1, h - 1);
@@ -283,44 +276,49 @@ struct PbrIblIrradiance::Impl
             glm::dvec3 right = glm::cross(up, normal);
                        up    = glm::cross(normal, right);
 
+            //double sampleDelta = 0.025;
+            double sampleDelta = 0.1;
+
+            // Sample hemisphere
             glm::dvec3 irradiance = glm::dvec3(0.0);
-            double sampleDelta = 0.025;
-            //double sampleDelta = 0.4;
             double nrSamples = 0.0;
-            for(double  phi = 0.0; phi < 2.0 * M_PI; phi += sampleDelta)
+            for(double  phi = 0.0;     phi < 2.0 * M_PI; phi   += sampleDelta)
+            for(double  theta = 0.0; theta < 0.5 * M_PI; theta += sampleDelta)
             {
-                for(double  theta = 0.0; theta < 0.5 * M_PI; theta += sampleDelta)
-                {
-                    // spherical to cartesian (in tangent space)
-                    glm::dvec3 tangentSample = glm::dvec3(sin(theta) * cos(phi),
-                                                          sin(theta) * sin(phi),
-                                                          cos(theta));
-                    // tangent space to world
-                    glm::dvec3 sampleVec = tangentSample.x * right +
-                                           tangentSample.y * up +
-                                           tangentSample.z * normal;
+                // spherical to cartesian (in tangent space)
+                const glm::dvec3 tangentSample =
+                    glm::dvec3(sin(theta) * cos(phi),
+                               sin(theta) * sin(phi),
+                               cos(theta));
 
-                    texture_cube_mapping::TextureCoordinate texCoord =
-                        texture_cube_mapping::mapPoint(sampleVec); // !!
+                // tangent space to world
+                const glm::dvec3 sampleVec =
+                    tangentSample.x * right +
+                    tangentSample.y * up +
+                    tangentSample.z * normal;
 
-                    std::array<uchar, 4> texColors = bgCubeMap.face(texCoord.faceIndex).pixel(texCoord.uv.x, texCoord.uv.y);
+                // Sample background
+                const texture_cube_mapping::TextureCoordinate texCoord =
+                    texture_cube_mapping::mapPoint(sampleVec);
+                const std::array<uchar, 4> texColors =
+                    bgCubeMap.face(size_t(texCoord.faceIndex)).pixel(texCoord.uv.x, texCoord.uv.y);
+                glm::dvec3 texColor(texColors[0] / 255.0,
+                                    texColors[1] / 255.0,
+                                    texColors[2] / 255.0);
 
-                    glm::dvec3 texColor(texColors[0] / 255.0,
-                                        texColors[1] / 255.0,
-                                        texColors[2] / 255.0);
-                    texColor *= 20.0;
+                // Amplify the sample to fake HDR
+                texColor *= 20.0;
 
-                    irradiance += texColor * cos(theta) * sin(theta);
-                    nrSamples++;
-                }
+                irradiance += texColor * cos(theta) * sin(theta);
+                nrSamples++;
             }
             irradiance = M_PI * irradiance * (1.0 / double(nrSamples));
 
-            texture_cube_mapping::TextureCoordinate texCoord2 =
+            const texture_cube_mapping::TextureCoordinate texCoord =
                 texture_cube_mapping::mapPoint(normal);
 
-            glm::ivec2 sc = mapCoord(texCoord2.uv);
-            size_t face = size_t(texCoord2.faceIndex);
+            glm::ivec2 sc = mapCoord(texCoord.uv);
+            size_t face = size_t(texCoord.faceIndex);
 
             std::array<double, 4> pix = { irradiance.r, irradiance.g, irradiance.b, 1.0 };
             self->irradianceCubemap.face(face).setPixel(sc.x, sc.y, pix);
@@ -330,13 +328,10 @@ struct PbrIblIrradiance::Impl
         rasterizer.run();
 
         self->irradianceCubemap.toQImage().save("/temp/mega.bmp");
-
-        //dcm.write("/temp/irradiance.dbl");
-        //dcm.toQImage().save("/temp/00_imX.bmp");
     }
 
-    /* ----------------------------------------------------------- *
-     * ----------------------------------------------------------- */
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
     glm::ivec2 mapCoord(glm::dvec2 texCoord) const
     {
         texCoord.y = 1.0 - texCoord.y;
@@ -345,18 +340,20 @@ struct PbrIblIrradiance::Impl
         return glm::ivec2(px, py);
     }
 
-    /* ---------------------------------------------------------------- *
-     * ---------------------------------------------------------------- */
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
     bool read(const QDir& dir)
     {
-        return self->irradianceCubemap.read(dir.absoluteFilePath("pbr_ibl_irradiance.kuu"));
+        return self->irradianceCubemap.read(
+            dir.absoluteFilePath("pbr_ibl_irradiance.kuu"));
     }
 
-    /* ---------------------------------------------------------------- *
-     * ---------------------------------------------------------------- */
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
     bool write(const QDir& dir)
     {
-        return self->irradianceCubemap.write(dir.absoluteFilePath("pbr_ibl_irradiance.kuu"));
+        return self->irradianceCubemap.write(
+            dir.absoluteFilePath("pbr_ibl_irradiance.kuu"));
     }
 
     PbrIblIrradiance* self;

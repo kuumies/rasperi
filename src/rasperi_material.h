@@ -7,6 +7,7 @@
 
 #include "rasperi_sampler.h"
 #include <glm/vec3.hpp>
+#include "rasperi_texture_cube.h"
 
 namespace kuu
 {
@@ -49,6 +50,10 @@ struct Material
         Sampler roughnessSampler;
         Sampler metalnessSampler;
         Sampler aoSampler;
+
+        TextureCube<double, 4>* irradiance = nullptr;
+        TextureCube<double, 4>* prefilter = nullptr;
+        Texture2D<double, 2>* brdfIntegration = nullptr;
     };
 
     Model model = Model::Phong;
