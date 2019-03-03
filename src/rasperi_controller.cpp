@@ -5,12 +5,15 @@
 
 #include "rasperi_controller.h"
 #include <glm/gtx/string_cast.hpp>
+#include <QtWidgets/QApplication>
 #include <QtCore/QDebug>
+#include <QtCore/QTime>
 #include "rasperi_camera.h"
 #include "rasperi_camera_controller.h"
 #include "rasperi_image_widget.h"
 #include "rasperi_main_window.h"
 #include "rasperi_model_importer.h"
+#include "rasperi_pbr_ibl.h"
 #include "rasperi_rasterizer.h"
 
 namespace kuu
@@ -164,18 +167,71 @@ struct Controller::Impl
         , cameraController(std::make_shared<CameraController>(self))
         , rasterizer(720, 576)
     {
+        ModelImporter importer;
+        auto models = importer.import("C:/Users/Antti Jumpponen/Downloads/4w0tjxp6ojpc-old_lantern_pbr/lantern_obj.obj");
+
+        // Model bounding box
+        Impl::BoundingBox bb;
+        for (const Model& model : models)
+            for (const Vertex& v : model.mesh->vertices)
+                bb.update(v.position);
+
+        // Model center point to origo
+        glm::dvec3 center = (bb.max + bb.min) * 0.5;
+        glm::dvec3 toOrigo = center - glm::dvec3(0.0);
+        for (const Model& model : models)
+            model.transform->position = -toOrigo;
+
+        // Fit camera to view the whole model
+        glm::dvec3 size = bb.max - bb.min;
+        double distance = fittingDistance(
+                    glm::dvec2(size.x, size.y),
+                    glm::dvec4(0.0, 0.0,
+                               imageWidget.width(),
+                               imageWidget.height()),
+                    camera->fieldOfView);
+
+    //    toOrigo.z = 100.0;
+    //    std::cout << __FUNCTION__          << ": "
+    //              << glm::to_string(bb.min)  << ", "
+    //              << glm::to_string(bb.max)  << ", "
+    //              << glm::to_string(center)
+    //              << std::endl;
+
+        cameraController->setZoomAmount(size.z / 5.0);
+        camera->viewDistance = distance;
+        camera->farPlane = distance * 2;
+
+        QString path = "C:/Users/Antti Jumpponen/Downloads/4w0tjxp6ojpc-old_lantern_pbr/textures/";
         Model m;
         m.material = std::make_shared<Material>();
-        m.material->diffuseFromVertex = true;
-        //m.material->diffuseSampler.setMap(QImage("/temp/my_msp.png"));
+        m.material->model = Material::Model::Pbr;
+        m.material->pbr.albedoSampler.setMap(QImage(path + "lantern_Base_Color.jpg"));
+        m.material->pbr.albedoSampler.setLinearizeGamma(true);
+        m.material->pbr.roughnessSampler.setMap(QImage(path + "lantern_Roughness.jpg").convertToFormat(QImage::Format_Grayscale8));
+        m.material->pbr.metalnessSampler.setMap(QImage(path + "lantern_Metallic.jpg").convertToFormat(QImage::Format_Grayscale8));
+        m.material->pbr.aoSampler.setMap(QImage(path + "lantern_Mixed_AO.jpg").convertToFormat(QImage::Format_Grayscale8));
+        m.material->normalSampler.setMap(QImage(path + "lantern_Normal_OpenGL.jpg"));
+        m.material->opacitySampler.setMap(QImage(path + "lantern_Opacity.jpg").convertToFormat(QImage::Format_Grayscale8));
+        //m.material->phong.diffuseFromVertex = true;
+        //m.material->phong.diffuseSampler.setMap(QImage("/temp/my_msp.png").mirrored(true, true));
         m.mesh = std::make_shared<Sphere>(1.0, 64, 64);
-        models.push_back(m);
+
+        for (auto& model : models)
+        {
+            model.material = m.material;
+            this->models.push_back(model);
+        }
+        //models.push_back(m);
     }
 
    /* ------------------------------------------------------------- *
     * ------------------------------------------------------------- */
     void rasterize(bool filled)
     {
+        QTime timer;
+        timer.start();
+
         rasterizer.clear();
         rasterizer.setNormalMode(Rasterizer::NormalMode::Smooth);
         rasterizer.setViewMatrix(camera->viewMatrix());
@@ -195,6 +251,8 @@ struct Controller::Impl
         ColorFramebuffer colorFramebuffer = rasterizer.colorFramebuffer();
         image = colorFramebuffer.toQImage();
         imageWidget.setImage(image);
+
+        qDebug() << __FUNCTION__ << timer.elapsed() << "ms";
     }
 
     /* ------------------------------------------------------------- *
@@ -219,6 +277,21 @@ struct Controller::Impl
 
         // Return distance
         return radius / std::sin(fov);
+    }
+
+    /* ------------------------------------------------------------- *
+     * ------------------------------------------------------------- */
+    void createPbrIbl()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+
+        QDir dir("/temp/");
+        PbrIbl pbrIbl(512);
+        if (!pbrIbl.read(dir))
+        {
+            const QImage bgMap = imageWidget.bgImage();
+            pbrIbl.run(bgMap);
+        }
     }
 
 //    /* ------------------------------------------------------------ *
@@ -332,6 +405,8 @@ void Controller::showUi()
     impl->mainWindow.setWindowTitle("Rasperi");
     impl->mainWindow.setCentralWidget(&impl->imageWidget);
     impl->mainWindow.showMaximized();
+    QApplication::processEvents();
+    impl->createPbrIbl();
 }
 
 /* ---------------------------------------------------------------- *

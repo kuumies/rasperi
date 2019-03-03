@@ -29,6 +29,12 @@ public:
         Coarse,
     };
 
+    enum class IlluminationMode
+    {
+        Phong,
+        Pbr,
+    };
+
     Rasterizer(int width, int height);
     void clear();
     void setModelMatrix(const glm::dmat4& view);

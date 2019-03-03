@@ -150,15 +150,15 @@ struct ModelImporter::Impl
         material->Get(AI_MATKEY_SHININESS,      specularPower);
 
         std::shared_ptr<Material> out = std::make_shared<Material>();
-        out->ambient       = toVec3(ambient);
-        out->diffuse       = toVec3(diffuse);
-        out->specular      = toVec3(specular);
-        out->specularPower = double(specularPower);
+        out->phong.ambient       = toVec3(ambient);
+        out->phong.diffuse       = toVec3(diffuse);
+        out->phong.specular      = toVec3(specular);
+        out->phong.specularPower = double(specularPower);
 
-        out->ambientSampler.setMap(loadTexture(material, aiTextureType_AMBIENT, dir));
-        out->diffuseSampler.setMap(loadTexture(material, aiTextureType_DIFFUSE, dir));
-        out->specularSampler.setMap(loadTexture(material, aiTextureType_SPECULAR, dir));
-        out->specularPowerSampler.setMap(loadTexture(material, aiTextureType_SHININESS, dir));
+        out->phong.ambientSampler.setMap(loadTexture(material, aiTextureType_AMBIENT, dir));
+        out->phong.diffuseSampler.setMap(loadTexture(material, aiTextureType_DIFFUSE, dir));
+        out->phong.specularSampler.setMap(loadTexture(material, aiTextureType_SPECULAR, dir));
+        out->phong.specularPowerSampler.setMap(loadTexture(material, aiTextureType_SHININESS, dir));
         out->normalSampler.setMap(loadTexture(material, aiTextureType_HEIGHT, dir)); // Note "typo", it really needs to be aiTextureType_HEIGHT for OBJs
 
         qDebug() << __FUNCTION__

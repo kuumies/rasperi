@@ -96,6 +96,43 @@ struct Sampler::Impl
 
     /* ----------------------------------------------------------- *
      * ----------------------------------------------------------- */
+    double sampleGrayscaleNearest(glm::dvec2 texCoord) const
+    {
+        //texCoord = wrapTexCoord(texCoord);
+        //texCoord = clampTexCoord(texCoord);
+        //texCoord.x = 1.0 - texCoord.x;
+        texCoord.y = 1.0 - texCoord.y;
+
+        int px = int(std::floor(texCoord.x * double(map.width()  - 1)));
+        int py = int(std::floor(texCoord.y * double(map.height() - 1)));
+        return sampleGrayscale(px, py);
+    }
+
+    /* ----------------------------------------------------------- *
+     * ----------------------------------------------------------- */
+    double sampleGrayscaleLinear(glm::dvec2 texCoord) const
+    {
+        texCoord.y = 1.0 - texCoord.y;
+        texCoord = wrapTexCoord(texCoord);
+
+        int px = int(std::floor(texCoord.x * double(map.width()  - 1)));
+        int py = int(std::floor(texCoord.y * double(map.height() - 1)));
+
+        std::array<double, 4> pixels;
+        pixels[0] = sampleGrayscale(px,     py    );
+        pixels[1] = sampleGrayscale(px + 1, py    );
+        pixels[2] = sampleGrayscale(px,     py + 1);
+        pixels[3] = sampleGrayscale(px + 1, py + 1);
+
+        return bilinear<double>(texCoord.x, texCoord.y,
+                                pixels[0],
+                                pixels[1],
+                                pixels[2],
+                                pixels[3]);
+    }
+
+    /* ----------------------------------------------------------- *
+     * ----------------------------------------------------------- */
     glm::dvec4 sampleRgba(int x, int y) const
     {      
         //x = map.width() - x - 1;
@@ -136,10 +173,89 @@ struct Sampler::Impl
         return out;
     }
 
-    /* ---------------------------------------------------------------- *
+    /* ----------------------------------------------------------- *
+     * ----------------------------------------------------------- */
+    double sampleGrayscale(int x, int y) const
+    {
+        //x = map.width() - x - 1;
+
+        if (map.isNull() || map.width() <= 0 || map.height() <= 0)
+        {
+            std::cerr << __FUNCTION__ << ": "
+                      << "map error"
+                      << std::endl;
+            return 0.0;
+        }
+
+        if (map.isNull() || x < 0 || x >= map.width() || y < 0 || y >= map.height())
+        {
+            std::cerr << __FUNCTION__ << ": "
+                      << x << ", " << y << ", "
+                      << map.width() << ", " << map.height()
+                      << std::endl;
+            return 0.0;
+        }
+
+        if (map.format() != QImage::Format_Grayscale8)
+        {
+            std::cerr << __FUNCTION__ << ": "
+                      << "map is not a Grayscale8 image"
+                      << std::endl;
+        }
+
+        const unsigned char* line = reinterpret_cast<const unsigned char*>(map.scanLine(y));
+        unsigned char pixel = line[x];
+        //if (pixel > 0)
+        //    std::cout << "jee" << std::endl;
+
+        double out = double(pixel) / 255.0;
+        out = glm::clamp(out, 0.0, 1.0);
+
+        if (linearizeGamma)
+        {
+            double gamma = 2.2;
+            out = glm::pow(out, gamma);
+        }
+
+        return out;
+    }
+
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
+    void writeRgba(const glm::dvec2& texCoord,
+                   const glm::dvec4& rgba)
+    {
+        glm::dvec2 uv = clampTexCoord(texCoord);
+        glm::ivec2 sc = mapCoord(uv);
+
+        if (map.isNull() ||
+            map.width() <= 0 ||
+            map.height() <= 0 ||
+            sc.x < 0 || sc.x >= map.width() ||
+            sc.y < 0 || sc.y >= map.height())
+        {
+            std::cerr << __FUNCTION__ << ": " << "map error" << std::endl;
+            return;
+        }
+
+        std::cout << __FUNCTION__ << ": " << sc.x << ", " << sc.y << std::endl;
+
+        QRgb* line = reinterpret_cast<QRgb*>(map.scanLine(sc.y));
+//        line[sc.x] = qRgba(qRound(rgba.r * 255.0),
+//                           qRound(rgba.g * 255.0),
+//                           qRound(rgba.b * 255.0),
+//                           qRound(rgba.a * 255.0));
+        line[sc.x] = qRgba(0, 0, 255, 255);
+        map.setPixel(sc.x, sc.y, qRgba(qRound(rgba.r * 255.0),
+                                       qRound(rgba.g * 255.0),
+                                       qRound(rgba.b * 255.0),
+                                       qRound(rgba.a * 255.0)));
+    }
+
+    /* ------------------------------------------------------------ *
        https://www.scratchapixel.com/lessons/mathematics-physics-for-
        computer-graphics/interpolation/bilinear-filtering
-     * ---------------------------------------------------------------- */
+     * ------------------------------------------------------------ */
     template<typename T>
     T bilinear(
        const double tx,
@@ -218,6 +334,27 @@ glm::dvec4 Sampler::sampleRgba(const glm::dvec2& texCoord) const
         case Filter::Linear:  return impl->sampleRgbaLinear(texCoord);
     }
     return glm::dvec4(0.0);
+}
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+double Sampler::sampleGrayscale(const glm::dvec2& texCoord) const
+{
+    switch(impl->filter)
+    {
+        case Filter::Nearest: return impl->sampleGrayscaleNearest(texCoord);
+        case Filter::Linear:  return impl->sampleGrayscaleLinear(texCoord);
+    }
+    return 0.0;
+}
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+void Sampler::writeRgba(const glm::dvec2& texCoord,
+                        const glm::dvec4& rgba)
+{
+    impl->writeRgba(texCoord, rgba);
+
 }
 
 } // namespace rasperi

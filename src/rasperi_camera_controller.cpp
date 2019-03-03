@@ -196,7 +196,7 @@ void CameraController::setKeyPress(QKeyEvent* e)
     moveDir = glm::dvec3(glm::inverse(camera->viewMatrix()) * glm::dvec4(moveDir, 0.0));
 
     camera->position += moveDir * 0.5;
-    impl->controller->rasterize(false);
+    impl->controller->rasterize(true);
 }
 
 /* -----------------------------------------------------------------*

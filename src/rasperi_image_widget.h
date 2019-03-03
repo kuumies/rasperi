@@ -26,6 +26,8 @@ public:
         QWidget* parent = nullptr);
     void setImage(const QImage& image);
 
+    QImage bgImage() const;
+
 protected:
     void resizeEvent(QResizeEvent* e) override;
     void paintEvent(QPaintEvent* e) override;

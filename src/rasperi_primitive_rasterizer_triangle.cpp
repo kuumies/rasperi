@@ -4,8 +4,6 @@
  * ---------------------------------------------------------------- */
  
 #include "rasperi_primitive_rasterizer.h"
-#include <QtCore/QDebug>
-#include <QtCore/QTime>
 #include "rasperi_material.h"
 #include "rasperi_sampler.h"
 
@@ -146,9 +144,20 @@ struct TrianglePrimitiveRasterizer::Impl
             glm::dvec3 l = glm::normalize(-lightDir);
             glm::dvec3 v = glm::normalize(cameraPos - vertex.position);
             glm::dvec3 r = glm::reflect(-l, n);
+            glm::dvec3 h = glm::normalize(v + l);
 
-            glm::dvec4 color = litVertex(vertex, material,
-                                         n, v, l, r);
+            glm::dvec4 color;
+            switch(material.model)
+            {
+                case Material::Model::Phong:
+                    color = litVertexPhong(vertex, material, n, v, l, r, h);
+                    break;
+
+                case Material::Model::Pbr:
+                    color = litVertexPbr(vertex, material, n, v, l, r, h);
+                    break;
+            }
+
             self->setRgba(x, y, color);
         }
     }
@@ -229,12 +238,15 @@ struct TrianglePrimitiveRasterizer::Impl
         return out;
     }
 
-    glm::dvec4 litVertex(const Vertex& vertex,
-                         const Material& material,
-                         const glm::dvec3& n,
-                         const glm::dvec3& v,
-                         const glm::dvec3& l,
-                         const glm::dvec3& r) const
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
+    glm::dvec4 litVertexPhong(const Vertex& vertex,
+                             const Material& material,
+                             const glm::dvec3& n,
+                             const glm::dvec3& v,
+                             const glm::dvec3& l,
+                             const glm::dvec3& r,
+                             const glm::dvec3& /*h*/) const
     {
         double nDotL = glm::dot(n, l);
         nDotL = glm::clamp(nDotL, 0.0, 1.0);
@@ -242,27 +254,119 @@ struct TrianglePrimitiveRasterizer::Impl
         double vDotR = glm::dot(v, r);
         vDotR = glm::clamp(vDotR, 0.0, 1.0);
 
-        glm::dvec3 ambient = material.ambient;
-        if (material.ambientSampler.isValid())
-            ambient = material.ambientSampler.sampleRgba(vertex.texCoord);
+        Material::Phong phong = material.phong;
+        glm::dvec3 ambient = phong.ambient;
+        if (phong.ambientSampler.isValid())
+            ambient = phong.ambientSampler.sampleRgba(vertex.texCoord);
 
-        glm::dvec3 diffuse = material.diffuse;
-        if (material.diffuseFromVertex)
+        glm::dvec3 diffuse = phong.diffuse;
+        if (phong.diffuseFromVertex)
             diffuse = vertex.color;
-        if (material.diffuseSampler.isValid())
-            diffuse = material.diffuseSampler.sampleRgba(vertex.texCoord);
+        if (phong.diffuseSampler.isValid())
+            diffuse = phong.diffuseSampler.sampleRgba(vertex.texCoord);
         diffuse *= nDotL;
 
-        double specularPower = material.specularPower;
-        if (material.specularPowerSampler.isValid())
-            specularPower = material.specularPowerSampler.sampleRgba(vertex.texCoord).x;
+        double specularPower = phong.specularPower;
+        if (phong.specularPowerSampler.isValid())
+            specularPower = phong.specularPowerSampler.sampleRgba(vertex.texCoord).x;
 
-        glm::dvec3 specular = material.specular;
-        if (material.specularSampler.isValid())
-            specular = material.specularSampler.sampleRgba(vertex.texCoord);
+        glm::dvec3 specular = phong.specular;
+        if (phong.specularSampler.isValid())
+            specular = phong.specularSampler.sampleRgba(vertex.texCoord);
         specular = specular * std::pow(vDotR, specularPower);
 
         return glm::dvec4(diffuse + specular, 1.0);
+    }
+
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
+    glm::dvec4 litVertexPbr(const Vertex& vertex,
+                            const Material& material,
+                            const glm::dvec3& n,
+                            const glm::dvec3& v,
+                            const glm::dvec3& l,
+                            const glm::dvec3& r,
+                            const glm::dvec3& h) const
+    {
+        // --------------------------------------------------------
+        // Vector angles
+
+        double nDotL = glm::max(glm::dot(n, l), 0.0);
+        double nDotV = glm::max(glm::dot(n, v), 0.0);
+        double nDotH = glm::max(glm::dot(n, h), 0.0);
+        double hDotV = glm::max(glm::dot(h, v), 0.0);
+
+        // --------------------------------------------------------
+        // Material
+
+        glm::dvec3 albedo = material.pbr.albedo;
+        if (material.pbr.albedoSampler.isValid())
+            albedo = material.pbr.albedoSampler.sampleRgba(vertex.texCoord);
+
+        double metallic = material.pbr.metalness;
+        if (material.pbr.metalnessSampler.isValid())
+            metallic = material.pbr.metalnessSampler.sampleGrayscale(vertex.texCoord);
+
+        double roughness = material.pbr.roughness;
+        if (material.pbr.roughnessSampler.isValid())
+            roughness = material.pbr.roughnessSampler.sampleGrayscale(vertex.texCoord);
+
+        double ao = material.pbr.ao;
+        if (material.pbr.aoSampler.isValid())
+            ao = material.pbr.aoSampler.sampleGrayscale(vertex.texCoord);
+
+        // --------------------------------------------------------
+        // Base reflectivity
+
+        glm::dvec3 f0 = glm::dvec3(0.04);
+        f0 = mix(f0, albedo, metallic);
+
+        // --------------------------------------------------------
+        // Calculate radiance
+
+        // GGX normal distribution function
+        double ndf = 0.0;
+        {
+            double nDotH2 = nDotH * nDotH;
+            double a = roughness * roughness;
+            double a2 = a * a;
+            double q  = glm::max(nDotH2 * (a2 - 1.0) + 1.0, 0.001);
+            ndf = a2 / (M_PI * q * q);
+        }
+
+        // GGX geometry function
+        double g = 0.0;
+        {
+            double r = roughness + 1.0;
+            double k = (r * r) / 8.0;
+            double ggx1 = nDotV / (nDotV * (1.0 - k) + k);
+            double ggx2 = nDotL / (nDotL * (1.0 - k) + k);
+            g = ggx1 * ggx2;
+        }
+
+        // Fresnel
+        glm::dvec3 f = f0 + (1.0 - f0) * pow(1.0 - hDotV, 5.0);
+
+        // Reflection/refraction ratio
+        glm::dvec3 kS = f;
+        glm::dvec3 kD = glm::dvec3(1.0) - kS;
+        kD *= 1.0 - metallic;
+
+        glm::dvec3 sunIntensity(2.0, 2.0, 2.0);
+
+        // Calc. light diffuse and specular radiance
+        glm::dvec3 radianceDiffuse  = kD * albedo / M_PI;
+        glm::dvec3 radianceSpecular = (ndf * g * f ) / (4.0 * nDotV * nDotL + 0.001);
+        glm::dvec3 radiance = (radianceDiffuse + radianceSpecular) *
+                              sunIntensity * nDotL;
+
+        //double exposure = 0.1;
+        //color = 1.0 - exp(-exposure * color);
+        glm::dvec3 color = radiance;
+        color = color / (color + glm::dvec3(1.0));
+        color = pow(color, glm::dvec3(1.0/2.2));
+
+        return glm::dvec4(color, 1.0);
     }
 
     TrianglePrimitiveRasterizer* self;
@@ -290,9 +394,6 @@ void TrianglePrimitiveRasterizer::rasterize(
         const glm::dvec3& cameraPos,
         const Material& material)
 {
-    QTime timer;
-    timer.start();
-
     for (size_t i = 0; i < triangleMesh.indices.size(); i += 3)
     {
         unsigned i1 = triangleMesh.indices[i + 0];
@@ -312,8 +413,6 @@ void TrianglePrimitiveRasterizer::rasterize(
 
         impl->rasterize(tri, cameraMatrix, modelMatrix, normalMatrix, lightDir, cameraPos, material);
     }
-
-    qDebug() << __FUNCTION__ << timer.elapsed() << "ms";
 }
 
 } // namespace rasperi

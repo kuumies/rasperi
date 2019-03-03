@@ -28,8 +28,8 @@ struct Rasterizer::Impl
         viewMatrix = glm::translate(glm::dmat4(1.0), glm::dvec3(0, 0, 3.0));
         projectionMatrix = glm::perspective(M_PI * 0.25, width / double(height), 0.1, 150.0);
         lightDir = glm::dvec3(0, 0, -1);
-        material.diffuse = glm::dvec3(1.0);
-        material.diffuseFromVertex = false;
+        material.phong.diffuse = glm::dvec3(1.0);
+        material.phong.diffuseFromVertex = false;
         updateMatrices();
     }
 

@@ -43,6 +43,10 @@ public:
     bool linearizeGamma() const;
 
     glm::dvec4 sampleRgba(const glm::dvec2& texCoord) const;
+    double sampleGrayscale(const glm::dvec2& texCoord) const;
+
+    void writeRgba(const glm::dvec2& texCood,
+                   const glm::dvec4& rgba);
 
 private:
     struct Impl;

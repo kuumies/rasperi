@@ -48,10 +48,16 @@
    <property name="text">
     <string>Import Model...</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+I</string>
+   </property>
   </action>
   <action name="actionSaveImage">
    <property name="text">
     <string>Save Image...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
    </property>
   </action>
  </widget>
