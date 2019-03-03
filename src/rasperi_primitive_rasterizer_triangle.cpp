@@ -6,6 +6,7 @@
 #include "rasperi_primitive_rasterizer.h"
 #include "rasperi_material.h"
 #include "rasperi_sampler.h"
+#include "rasperi_texture_cube_mapping.h"
 
 namespace kuu
 {
@@ -360,9 +361,53 @@ struct TrianglePrimitiveRasterizer::Impl
         glm::dvec3 radiance = (radianceDiffuse + radianceSpecular) *
                               sunIntensity * nDotL;
 
+        // -----------------------------------------------------------
+        // Calculate irradiance
+
+        // Sample diffuse irradiance.
+        texture_cube_mapping::TextureCoordinate tc =
+            texture_cube_mapping::mapPoint(n);
+        size_t face = size_t(tc.faceIndex);
+
+        const std::array<double, 4> irradiancePix =
+            material.pbr.irradiance->face(face).pixel(tc.uv.x, tc.uv.y);
+
+        const glm::dvec3 irradianceDiffuse =
+            glm::dvec3(irradiancePix[0],
+                       irradiancePix[1],
+                       irradiancePix[2]) /** albedo*/;
+
+        // Sample specular irradiance
+        tc = texture_cube_mapping::mapPoint(r);
+        face = size_t(tc.faceIndex);
+
+        double level = roughness * material.pbr.prefilter->mipmapCount();
+        const std::array<double, 4> prefilterPix =
+            material.pbr.prefilter->face(face).mipmap(level).pixel(tc.uv.x, tc.uv.y);
+
+        const glm::dvec3 prefilterer=
+            glm::dvec3(prefilterPix[0],
+                       prefilterPix[1],
+                       prefilterPix[2]);
+
+        // Sample BRDF integration.
+        const std::array<double, 2> brdfIntegrationPix =
+            material.pbr.brdfIntegration->pixel(nDotV, roughness);
+
+        const glm::dvec2 envBRDF =
+            glm::dvec2(brdfIntegrationPix[0],
+                       brdfIntegrationPix[1]);
+
+        // Fresnel roughness
+        glm::dvec3 fr = f0 + (glm::max(glm::dvec3(1.0 - roughness), f0) - f0) * pow(1.0 - nDotV, 5.0);
+
+        glm::dvec3 irradianceSpecular = prefilterer * (fr * envBRDF.x + envBRDF.y);
+
+        glm::dvec3 irradiance = (kD * irradianceDiffuse + irradianceSpecular) * ao;
+
         //double exposure = 0.1;
         //color = 1.0 - exp(-exposure * color);
-        glm::dvec3 color = radiance;
+        glm::dvec3 color = radiance /*+ irradiance*/;
         color = color / (color + glm::dvec3(1.0));
         color = pow(color, glm::dvec3(1.0/2.2));
 
