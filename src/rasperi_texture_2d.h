@@ -49,10 +49,46 @@ public:
      * ------------------------------------------------------------ */
     QImage toQImage() const
     {
-        if (C == 1)
-            return QImage(d->pixels.data(), d->width, d->height, QImage::Format_Grayscale8);
-        if (C == 4)
-            return QImage(d->pixels.data(), d->width, d->height, QImage::Format_RGB32);
+        // See https://en.cppreference.com/w/cpp/language/typeid
+        const std::type_info& ti1 = typeid(T);
+        const std::type_info& ti2 = typeid(double);
+        const std::type_info& ti3 = typeid(float);
+
+        bool floatingPoint = ti1.hash_code() == ti2.hash_code() ||
+                             ti1.hash_code() == ti3.hash_code();
+
+        if (floatingPoint)
+        {
+            std::vector<uchar> data;
+            for (int y = 0; y < d->height; ++y)
+            for (int x = 0; x < d->width;  ++x)
+            {
+                for (int c = 0; c < C; ++c)
+                {
+                    T v = d->pixels[y * d->width * C + C * x + c];
+                    v = v / (v + T(1.0)); // tone mapping HDR -> SDR
+                    data.push_back(qRound(v * 255.0));
+                }
+            }
+
+            switch(C)
+            {
+                case 1: return QImage(data.data(), d->width, d->height, QImage::Format_Grayscale8).copy();
+                case 4: return QImage(data.data(), d->width, d->height, QImage::Format_RGB32).copy();
+                default: break;
+            }
+        }
+        else
+        {
+            uchar* data = reinterpret_cast<uchar*>(d->pixels.data());
+            switch(C)
+            {
+                case 1: return QImage(data, d->width, d->height, QImage::Format_Grayscale8);
+                case 4: return QImage(data, d->width, d->height, QImage::Format_RGB32);
+                default: break;
+            }
+
+        }
         return QImage();
     }
 

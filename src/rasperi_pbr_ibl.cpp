@@ -20,6 +20,7 @@
 #include "rasperi_double_map.h"
 #include "rasperi_framebuffer.h"
 #include "rasperi_sampler.h"
+#include "rasperi_texture_cube.h"
 
 namespace kuu
 {
@@ -566,6 +567,8 @@ struct PbrIbl::Impl
 
         //DoubleRgbCubeMap dcm(size, size);
 
+        TextureCube<double, 4> irradianceCubemap(size, size);
+
         auto irradienceCallback = [&](const glm::dvec3& p)
         {
             glm::dvec3 normal= glm::normalize(p);
@@ -574,8 +577,8 @@ struct PbrIbl::Impl
                        up    = glm::cross(normal, right);
 
             glm::dvec3 irradiance = glm::dvec3(0.0);
-            double sampleDelta = 0.025;
-            //double sampleDelta = 0.4;
+            //double sampleDelta = 0.025;
+            double sampleDelta = 0.4;
             double nrSamples = 0.0;
             for(double  phi = 0.0; phi < 2.0 * M_PI; phi += sampleDelta)
             {
@@ -590,7 +593,7 @@ struct PbrIbl::Impl
                                            tangentSample.y * up +
                                            tangentSample.z * normal;
 
-                    std::pair<int, glm::dvec2> texCoord = cubeMap.xyzToUv(sampleVec); // !!
+                    std::pair<int, glm::dvec2> texCoord = cubeMap.xyzToUv(normal); // !!
                     Sampler sampler(cubeMap.faces[texCoord.first]);
                     sampler.setFilter(Sampler::Filter::Nearest);
                     glm::dvec3 texColor = sampler.sampleRgba(texCoord.second) * 20.0;
@@ -605,21 +608,28 @@ struct PbrIbl::Impl
 
             glm::ivec2 sc = mapCoord(texCoord2.second);
             self->irradiance.set(size_t(texCoord2.first), sc.x, sc.y, irradiance);
+
+            size_t face = size_t(texCoord2.first);
+
+            std::array<double, 4> pix = { irradiance.r, irradiance.g, irradiance.b, 1.0 };
+            irradianceCubemap.face(face).setPixel(sc.x, sc.y, pix);
         };
 
         NdcCubeRasterizer rasterizer(size, size, irradienceCallback);
         rasterizer.run();
 
-        // --------------------------------------------------------
-        // Render prefilter map
+        irradianceCubemap.toQImage().save("/temp/mega.bmp");
 
-        auto prefilterCallback = [&](const glm::dvec3& p)
-        {
+//        // --------------------------------------------------------
+//        // Render prefilter map
 
-        };
+//        auto prefilterCallback = [&](const glm::dvec3& p)
+//        {
 
-        rasterizer.callback = prefilterCallback;
-        rasterizer.run();
+//        };
+
+//        rasterizer.callback = prefilterCallback;
+//        rasterizer.run();
 
         //dcm.write("/temp/irradiance.dbl");
         //dcm.toQImage().save("/temp/00_imX.bmp");

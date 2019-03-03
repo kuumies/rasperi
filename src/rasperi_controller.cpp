@@ -315,11 +315,12 @@ struct Controller::Impl
             qDebug() << "FUCK";
 
 //        QDir dir("/temp/");
-//        PbrIbl pbrIbl(512);
+        PbrIbl pbrIbl(512);
+        const QImage bgMap = imageWidget.bgImage();
+        pbrIbl.run(bgMap);
+
 //        if (!pbrIbl.read(dir))
 //        {
-//            const QImage bgMap = imageWidget.bgImage();
-//            pbrIbl.run(bgMap);
 //        }
     }
 

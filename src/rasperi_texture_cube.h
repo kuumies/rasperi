@@ -41,7 +41,7 @@ public:
 
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
-    Texture2D<T, C> face(size_t f) const
+    Texture2D<T, C>& face(size_t f) const
     { return d->faces[f]; }
 
     /* ------------------------------------------------------------ *
@@ -68,12 +68,12 @@ public:
         const QRect sourceRect(0, 0, w, h);
 
         QPainter p(&out);
-        p.drawImage(QRect(    w,     0, w, h), d->faces[0].getQImage(), sourceRect); // +Y
-        p.drawImage(QRect(    0,     h, w, h), d->faces[1].getQImage(), sourceRect); // -X
-        p.drawImage(QRect(    w,     h, w, h), d->faces[2].getQImage(), sourceRect); // +Z
-        p.drawImage(QRect(2 * w,     h, w, h), d->faces[3].getQImage(), sourceRect); // +X
-        p.drawImage(QRect(3 * w,     h, w, h), d->faces[4].getQImage(), sourceRect); // -Z
-        p.drawImage(QRect(    w, 2 * h, w, h), d->faces[5].getQImage(), sourceRect); // -Z
+        p.drawImage(QRect(    w,     0, w, h), d->faces[0].toQImage(), sourceRect); // +Y
+        p.drawImage(QRect(    0,     h, w, h), d->faces[1].toQImage(), sourceRect); // -X
+        p.drawImage(QRect(    w,     h, w, h), d->faces[2].toQImage(), sourceRect); // +Z
+        p.drawImage(QRect(2 * w,     h, w, h), d->faces[3].toQImage(), sourceRect); // +X
+        p.drawImage(QRect(3 * w,     h, w, h), d->faces[4].toQImage(), sourceRect); // -Z
+        p.drawImage(QRect(    w, 2 * h, w, h), d->faces[5].toQImage(), sourceRect); // -Z
 
         return out;
     }
