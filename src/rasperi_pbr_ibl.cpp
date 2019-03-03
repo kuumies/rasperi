@@ -5,6 +5,7 @@
  
 #include "rasperi_pbr_ibl.h"
 #include <array>
+#include <functional>
 #include <iostream>
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -24,6 +25,259 @@ namespace kuu
 {
 namespace rasperi
 {
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+class CubeCamera
+{
+public:
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
+    CubeCamera(double aspectRatio)
+    {
+        // --------------------------------------------------------
+        // Create a camera for each cubemap face
+
+        std::array<glm::dquat, 6> rotations =
+        {
+            // pos x
+            glm::angleAxis(glm::radians(-90.0), glm::dvec3(0.0, 1.0, 0.0)) *
+            glm::angleAxis(glm::radians(180.0), glm::dvec3(0.0, 0.0, 1.0)),
+
+            // neg x
+            glm::angleAxis(glm::radians( 90.0), glm::dvec3(0.0, 1.0, 0.0)) *
+            glm::angleAxis(glm::radians(180.0), glm::dvec3(0.0, 0.0, 1.0)),
+
+            // pos y
+            glm::angleAxis(glm::radians(-90.0), glm::dvec3(1.0, 0.0, 0.0)),
+
+            // neg y
+            glm::angleAxis(glm::radians( 90.0), glm::dvec3(1.0, 0.0, 0.0)),
+
+            // pos z
+            glm::angleAxis(glm::radians(180.0), glm::dvec3(0.0, 1.0, 0.0)) *
+            glm::angleAxis(glm::radians(180.0), glm::dvec3(0.0, 0.0, 1.0)),
+
+            // neg z
+            glm::angleAxis(glm::radians(  0.0), glm::dvec3(0.0, 1.0, 0.0)) *
+            glm::angleAxis(glm::radians(180.0), glm::dvec3(0.0, 0.0, 1.0)),
+        };
+
+        const double fov       = M_PI * 0.5;
+        const double nearPlane = 0.1;
+        const double farPlane  = 150.0;
+        projectionMatrix = glm::perspective(fov, aspectRatio, nearPlane, farPlane);
+
+        for (size_t face = 0; face < 6; ++face)
+            viewMatrices[face] = glm::mat4_cast(rotations[face]);
+    }
+
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
+    glm::dmat4 cameraMatrix(size_t face) const
+    { return projectionMatrix * viewMatrices[face]; }
+
+    glm::dmat4 projectionMatrix;
+    std::array<glm::dmat4, 6> viewMatrices;
+
+};
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+class NdcCubeRasterizer
+{
+public:
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
+    class BoundingBox
+    {
+    public:
+        BoundingBox()
+        {
+            min.x =  std::numeric_limits<double>::max();
+            min.y =  std::numeric_limits<double>::max();
+            max.x = -std::numeric_limits<double>::max();
+            max.y = -std::numeric_limits<double>::max();
+        }
+
+        void update(const glm::dvec2& p)
+        {
+            if (p.x < min.x) min.x = p.x;
+            if (p.y < min.y) min.y = p.y;
+            if (p.x > max.x) max.x = p.x;
+            if (p.y > max.y) max.y = p.y;
+        }
+
+        glm::dvec2 min;
+        glm::dvec2 max;
+    };
+
+    using Callback = std::function<void(glm::dvec3)>;
+
+    int w;
+    int h;
+    Callback callback;
+    CubeCamera cubeCamera;
+
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
+    NdcCubeRasterizer(int w, int h, Callback callback)
+        : w(w)
+        , h(h)
+        , callback(callback)
+        , cubeCamera(w / double(h))
+    {}
+
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
+    void run() const
+    {
+        // --------------------------------------------------------
+        // Create NDC cube
+
+        std::vector<glm::dvec3> vertexData =
+        {
+            { -1,-1,-1 },
+            {  1, 1,-1 },
+            {  1,-1,-1 },
+            { -1, 1,-1 },
+            { -1,-1, 1 },
+            {  1,-1, 1 },
+            {  1, 1, 1 },
+            { -1, 1, 1 },
+        };
+
+        std::vector<unsigned> indexData
+        {
+            2,1,0, 3,0,1,
+            6,5,4, 4,7,6,
+            0,3,7, 7,4,0,
+            1,2,6, 5,6,2,
+            5,2,0, 0,4,5,
+            1,6,3, 7,3,6,
+        };
+
+        // --------------------------------------------------------
+        // Rasterize
+
+        for (size_t face = 0; face < 6; ++face)
+        {
+            std::cout << "Process face " << face << std::endl;
+
+            glm::dmat4 camera = cubeCamera.cameraMatrix(face);
+
+            for (size_t i = 0; i < indexData.size(); i += 3)
+            {
+                glm::dvec3 v1 = vertexData[indexData[i+0]];
+                glm::dvec3 v2 = vertexData[indexData[i+1]];
+                glm::dvec3 v3 = vertexData[indexData[i+2]];
+
+                glm::dvec3 proj1 = project(camera, v1);
+                glm::dvec3 proj2 = project(camera, v2);
+                glm::dvec3 proj3 = project(camera, v3);
+
+                glm::dvec2 vp1 = viewportTransform(proj1);
+                glm::dvec2 vp2 = viewportTransform(proj2);
+                glm::dvec2 vp3 = viewportTransform(proj3);
+
+                BoundingBox bb;
+                bb.update(vp1);
+                bb.update(vp2);
+                bb.update(vp3);
+
+                int xmin = std::max(0, std::min(w - 1, int(std::floor(bb.min.x))));
+                int ymin = std::max(0, std::min(h - 1, int(std::floor(bb.min.y))));
+                int xmax = std::max(0, std::min(w - 1, int(std::floor(bb.max.x))));
+                int ymax = std::max(0, std::min(h - 1, int(std::floor(bb.max.y))));
+
+//                #pragma omp parallel for
+                for (int y = ymin; y <= ymax; ++y)
+                for (int x = xmin; x <= xmax; ++x)
+                {
+                    glm::dvec2 screen(x + 0.5, y + 0.5);
+
+                    // Barycentric weights
+                    double w1 = edgeFunction(vp2, vp3, screen);
+                    double w2 = edgeFunction(vp3, vp1, screen);
+                    double w3 = edgeFunction(vp1, vp2, screen);
+                    if (w1 < 0.0 || w2 < 0.0 || w3 < 0.0)
+                        continue;
+
+                    // Top-left edge rule
+                    glm::dvec2 edge1 = vp2 - vp3;
+                    glm::dvec2 edge2 = vp3 - vp1;
+                    glm::dvec2 edge3 = vp1 - vp2;
+                    bool overlaps = true;
+                    overlaps &= (w1 == 0.0 ? ((edge1.y == 0.0 && edge1.x < 0.0) ||  edge1.y < 0.0) : (w1 > 0.0));
+                    overlaps &= (w2 == 0.0 ? ((edge2.y == 0.0 && edge2.x < 0.0) ||  edge2.y < 0.0) : (w2 > 0.0));
+                    overlaps &= (w3 == 0.0 ? ((edge3.y == 0.0 && edge3.x < 0.0) ||  edge3.y < 0.0) : (w3 > 0.0));
+                    if (!overlaps)
+                        continue;
+
+                    double area = edgeFunction(vp1, vp2, vp3);
+                    w1 /= area;
+                    w2 /= area;
+                    w3 /= area;
+
+                    double z  = 1.0 / (w1 * 1.0 / proj1.z +
+                                       w2 * 1.0 / proj2.z +
+                                       w3 * 1.0 / proj3.z);
+
+//                    // Depth test.
+//                    double d = depthbuffer.get(x, y, 0);
+//                    if (z >= d)
+//                        continue;
+//                    depthbuffer.set(x, y, 0, z);
+
+                    glm::dvec3 p1 = v1 / proj1.z;
+                    glm::dvec3 p2 = v2 / proj2.z;
+                    glm::dvec3 p3 = v3 / proj3.z;
+                    glm::dvec3 p = p1  * w1 * z +
+                                   p2  * w2 * z +
+                                   p3  * w3 * z;
+
+                    callback(p);
+                }
+            }
+        }
+    }
+
+    /* ---------------------------------------------------------------- *
+     * ---------------------------------------------------------------- */
+    glm::dvec3 project(const glm::dmat4& m, const glm::dvec3& p) const
+    {
+        const glm::dvec4 v = m * glm::dvec4(p, 1.0);
+        if (v.w == 0.0)
+        {
+            std::cerr << "proj err" << std::endl;
+            return glm::dvec3(0.0);
+        }
+        return glm::dvec3(v.x / v.w, v.y / v.w, v.z / v.w);
+    }
+
+    /* ---------------------------------------------------------------- *
+     * ---------------------------------------------------------------- */
+    glm::dvec2 viewportTransform(const glm::dvec3& p) const
+    {
+        const glm::ivec2 vp(w - 1, h - 1);
+        const glm::dvec2 halfViewport = glm::dvec2(vp) * 0.5;
+
+        glm::dvec2 out;
+        out.x =        (p.x + 1.0) * halfViewport.x;
+        out.y = vp.y - (p.y + 1.0) * halfViewport.y;
+
+        return out;
+    }
+
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
+    double edgeFunction(const glm::dvec2& a,
+                        const glm::dvec2& b,
+                        const glm::dvec2& c) const
+    {
+        return ((c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x));
+    }
+};
 
 /* ---------------------------------------------------------------- *
    https://en.wikipedia.org/wiki/Cube_mapping
@@ -231,16 +485,16 @@ struct PbrIbl::Impl
         map = bgMap;
         cubeMap.setFaceData(map);
 
-        DoubleRgbCubeMap dcm2(size, size);
-        if (!dcm2.read("/temp/irradiance.dbl"))
-            std::cout << "Failed to read irradiance dbl" << std::endl;
-        dcm2.toQImage().save("/temp/00_im2.bmp");
-        return ;
+//        DoubleRgbCubeMap dcm2(size, size);
+//        if (!dcm2.read("/temp/irradiance.dbl"))
+//            std::cout << "Failed to read irradiance dbl" << std::endl;
+//        dcm2.toQImage().save("/temp/00_im2.bmp");
+//        return ;
 
         // --------------------------------------------------------
         // Create SDR cubemap of background map
 
-        cubeMap.setFaceData(map);
+//        cubeMap.setFaceData(map);
 
         // --------------------------------------------------------
         // Create a camera for each cubemap face
@@ -310,8 +564,67 @@ struct PbrIbl::Impl
         // --------------------------------------------------------
         // Render irradiance map
 
-        DoubleRgbCubeMap dcm(size, size);
+        //DoubleRgbCubeMap dcm(size, size);
 
+        auto irradienceCallback = [&](const glm::dvec3& p)
+        {
+            glm::dvec3 normal= glm::normalize(p);
+            glm::dvec3 up    = glm::dvec3(0.0, 1.0, 0.0);
+            glm::dvec3 right = glm::cross(up, normal);
+                       up    = glm::cross(normal, right);
+
+            glm::dvec3 irradiance = glm::dvec3(0.0);
+            double sampleDelta = 0.025;
+            //double sampleDelta = 0.4;
+            double nrSamples = 0.0;
+            for(double  phi = 0.0; phi < 2.0 * M_PI; phi += sampleDelta)
+            {
+                for(double  theta = 0.0; theta < 0.5 * M_PI; theta += sampleDelta)
+                {
+                    // spherical to cartesian (in tangent space)
+                    glm::dvec3 tangentSample = glm::dvec3(sin(theta) * cos(phi),
+                                                          sin(theta) * sin(phi),
+                                                          cos(theta));
+                    // tangent space to world
+                    glm::dvec3 sampleVec = tangentSample.x * right +
+                                           tangentSample.y * up +
+                                           tangentSample.z * normal;
+
+                    std::pair<int, glm::dvec2> texCoord = cubeMap.xyzToUv(sampleVec); // !!
+                    Sampler sampler(cubeMap.faces[texCoord.first]);
+                    sampler.setFilter(Sampler::Filter::Nearest);
+                    glm::dvec3 texColor = sampler.sampleRgba(texCoord.second) * 20.0;
+//                            irradiance = texColor;
+                    irradiance += texColor * cos(theta) * sin(theta);
+                    nrSamples++;
+                }
+            }
+            irradiance = M_PI * irradiance * (1.0 / double(nrSamples));
+
+            std::pair<int, glm::dvec2> texCoord2 = cubeMap.xyzToUv(normal);
+
+            glm::ivec2 sc = mapCoord(texCoord2.second);
+            self->irradiance.set(size_t(texCoord2.first), sc.x, sc.y, irradiance);
+        };
+
+        NdcCubeRasterizer rasterizer(size, size, irradienceCallback);
+        rasterizer.run();
+
+        // --------------------------------------------------------
+        // Render prefilter map
+
+        auto prefilterCallback = [&](const glm::dvec3& p)
+        {
+
+        };
+
+        rasterizer.callback = prefilterCallback;
+        rasterizer.run();
+
+        //dcm.write("/temp/irradiance.dbl");
+        //dcm.toQImage().save("/temp/00_imX.bmp");
+
+#if 0
         for (size_t face = 0; face < 6; ++face)
         {
             std::cout << "Process face " << face << std::endl;
@@ -506,6 +819,7 @@ struct PbrIbl::Impl
 
         cubeMap.writeToFile("/temp/00_cm.bmp");
         //irradianceMap.writeToFile("/temp/00_im.bmp");
+#endif
     }
 
     /* ---------------------------------------------------------------- *

@@ -15,6 +15,9 @@
 #include "rasperi_model_importer.h"
 #include "rasperi_pbr_ibl.h"
 #include "rasperi_rasterizer.h"
+#include "rasperi_texture_2d.h"
+#include "rasperi_texture_cube.h"
+#include "rasperi_texture_mipmaps.h"
 
 namespace kuu
 {
@@ -285,13 +288,34 @@ struct Controller::Impl
     {
         std::cout << __FUNCTION__ << std::endl;
 
-        QDir dir("/temp/");
-        PbrIbl pbrIbl(512);
-        if (!pbrIbl.read(dir))
-        {
-            const QImage bgMap = imageWidget.bgImage();
-            pbrIbl.run(bgMap);
-        }
+        QImage img("/temp/bricks2.jpg");
+        std::vector<uchar> pixels;
+        pixels.resize(img.sizeInBytes());
+        memcpy(pixels.data(), img.bits(), img.sizeInBytes());
+        //QImage img2(pixels.data(), img.width(), img.height(), img.format());
+
+        TextureCube<double, 3> tc;
+        tc.generateMipmaps();
+
+        Texture2D<uchar, 4> tex(img.width(), img.height(), pixels);
+        tex.toQImage().save("/temp/brics22.bmp");
+
+        MipmapGenerator generator;
+        generator.generate(tex);
+
+        std::array<uchar, 4> pix = { 255, 255, 255, 255 };
+        tex.setPixel(5, 5, pix);
+        std::array<uchar, 4> pix2 = tex.pixel(5, 5);
+        if (pix != pix2)
+            qDebug() << "FUCK";
+
+//        QDir dir("/temp/");
+//        PbrIbl pbrIbl(512);
+//        if (!pbrIbl.read(dir))
+//        {
+//            const QImage bgMap = imageWidget.bgImage();
+//            pbrIbl.run(bgMap);
+//        }
     }
 
 //    /* ------------------------------------------------------------ *
