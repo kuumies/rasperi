@@ -5,6 +5,7 @@
  
 #pragma once
 
+#include <iostream>
 #include <memory>
 #include <QtCore/QDataStream>
 #include <QtCore/QFile>
@@ -69,21 +70,21 @@ public:
                 for (int c = 0; c < C; ++c)
                 {
                     T v = d->pixels[y * d->width * C + C * x + c];
-                    v = v / (v + T(1.0)); // tone mapping HDR -> SDR
+                    //v = v / (v + T(1.0)); // tone mapping HDR -> SDR
                     data.push_back(qRound(v * 255.0));
-                    if (channels != C)
-                    {
-                        if (channels == 2)
-                            data.push_back(0); // b
-                        data.push_back(255);   // a
-                    }
+                }
+                if (channels != C)
+                {
+                    if (C == 2)
+                        data.push_back(0); // b
+                    data.push_back(255);   // a
                 }
             }
 
             switch(channels)
             {
                 case 1: return QImage(data.data(), d->width, d->height, QImage::Format_Grayscale8).copy();
-                case 4: return QImage(data.data(), d->width, d->height, QImage::Format_RGB32).copy();
+                case 4: return QImage(data.data(), d->width, d->height, QImage::Format_RGB32).rgbSwapped().copy();
                 default: break;
             }
         }
@@ -107,6 +108,10 @@ public:
     {
         int px = int(std::floor(x * double(d->width  - 1)));
         int py = int(std::floor(y * double(d->height - 1)));
+
+//        std::cout << px << ", " << py << ", "
+//                  << pixel[0] << ", " << pixel[1]
+//                  << std::endl;
         return setPixel(px, py, pixel);
     }
 
@@ -157,7 +162,7 @@ public:
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
     int mipmapCount() const
-    { return 1 + int(d->mipmaps.size()); }
+    { return int(d->mipmaps.size()); }
 
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */

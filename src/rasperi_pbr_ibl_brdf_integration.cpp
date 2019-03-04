@@ -140,8 +140,8 @@ struct PbrIblBrdfIntegration::Impl
 
         auto brdfIntegrationCallback = [&](const glm::dvec2& texCoord)
         {
-            std::cout << __FUNCTION__  << ": " << glm::to_string(texCoord) <<  std::endl;
-            glm::dvec2 integratedBRDF = integrateBRDF(texCoord.x, texCoord.y);
+            //std::cout << __FUNCTION__  << ": " << glm::to_string(texCoord) <<  std::endl;
+            glm::dvec2 integratedBRDF = integrateBRDF(texCoord.x, 1.0 - texCoord.y);
 
             std::array<double, 2> pix = { integratedBRDF.x, integratedBRDF.y };
             //std::array<double, 2> pix = { texCoord.x, texCoord.y };

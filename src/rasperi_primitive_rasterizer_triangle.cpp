@@ -375,39 +375,39 @@ struct TrianglePrimitiveRasterizer::Impl
         const glm::dvec3 irradianceDiffuse =
             glm::dvec3(irradiancePix[0],
                        irradiancePix[1],
-                       irradiancePix[2]) /** albedo*/;
+                       irradiancePix[2]) * albedo;
 
         // Sample specular irradiance
         tc = texture_cube_mapping::mapPoint(r);
         face = size_t(tc.faceIndex);
 
-        double level = roughness * material.pbr.prefilter->mipmapCount();
-        const std::array<double, 4> prefilterPix =
-            material.pbr.prefilter->face(face).mipmap(level).pixel(tc.uv.x, tc.uv.y);
-
+        // Sample prefilter value
+        int levelCount = material.pbr.prefilter->mipmapCount();
+        double level = roughness * levelCount;
+        int levelMin = glm::clamp(int(std::floor(level)), 0, levelCount);
+        int levelMax = glm::clamp(int(std::ceil(level)),  0, levelCount);
+        const std::array<double, 4> prefilterPixMin = material.pbr.prefilter->face(face).mipmap(levelMin).pixel(tc.uv.x, tc.uv.y);
+        const std::array<double, 4> prefilterPixMax = material.pbr.prefilter->face(face).mipmap(levelMax).pixel(tc.uv.x, tc.uv.y);
         const glm::dvec3 prefilterer=
-            glm::dvec3(prefilterPix[0],
-                       prefilterPix[1],
-                       prefilterPix[2]);
+            glm::dvec3((prefilterPixMin[0] + prefilterPixMax[0]) * 0.5,
+                       (prefilterPixMin[1] + prefilterPixMax[0]) * 0.5,
+                       (prefilterPixMin[2] + prefilterPixMax[0]) * 0.5);
 
         // Sample BRDF integration.
-        const std::array<double, 2> brdfIntegrationPix =
-            material.pbr.brdfIntegration->pixel(nDotV, roughness);
-
-        const glm::dvec2 envBRDF =
+        const std::array<double, 2> brdfIntegrationPix = material.pbr.brdfIntegration->pixel(nDotV, roughness);
+        const glm::dvec2 brdfIntegration =
             glm::dvec2(brdfIntegrationPix[0],
                        brdfIntegrationPix[1]);
 
         // Fresnel roughness
         glm::dvec3 fr = f0 + (glm::max(glm::dvec3(1.0 - roughness), f0) - f0) * pow(1.0 - nDotV, 5.0);
-
-        glm::dvec3 irradianceSpecular = prefilterer * (fr * envBRDF.x + envBRDF.y);
+        glm::dvec3 irradianceSpecular = prefilterer * (fr * brdfIntegration.x + brdfIntegration.y);
 
         glm::dvec3 irradiance = (kD * irradianceDiffuse + irradianceSpecular) * ao;
 
         //double exposure = 0.1;
         //color = 1.0 - exp(-exposure * color);
-        glm::dvec3 color = radiance /*+ irradiance*/;
+        glm::dvec3 color = radiance + irradiance;;
         color = color / (color + glm::dvec3(1.0));
         color = pow(color, glm::dvec3(1.0/2.2));
 
