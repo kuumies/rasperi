@@ -96,6 +96,11 @@ void ImportPhongModelsDialog::on_pushButtonBrowse_clicked()
         return;
     }
 
+    for (Model& model : impl->models)
+        model.material->model = Material::Model::Phong;
+
+    impl->dir = QFileInfo(filepath).absoluteDir();
+
     impl->ui.lineEditName->setText(QFileInfo(filepath).fileName());
     impl->ui.comboBoxModels->blockSignals(true);
     impl->ui.comboBoxModels->clear();

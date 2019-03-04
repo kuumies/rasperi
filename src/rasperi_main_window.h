@@ -35,6 +35,8 @@ private slots:
     void on_actionImportModelsPbr_triggered();
     void on_actionSaveImage_triggered();
 
+    void on_actionAbout_triggered();
+
 private:
     struct Impl;
     std::shared_ptr<Impl> impl;

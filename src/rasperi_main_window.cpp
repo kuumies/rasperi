@@ -7,6 +7,7 @@
 #include "ui_rasperi_main_window.h"
 #include <QtWidgets/QFileDialog>
 #include <QtWidgets/QMessageBox>
+#include "rasperi_about_dialog.h"
 #include "rasperi_landing_dialog.h"
 #include "rasperi_import_pbr_models_dialog.h"
 #include "rasperi_import_phong_models_dialog.h"
@@ -60,7 +61,7 @@ void MainWindow::showLandingDialog()
  * ---------------------------------------------------------------- */
 void MainWindow::viewPbrSphereScene()
 {
-
+    impl->controller->viewPbrSphereScene();
 }
 
 /* ---------------------------------------------------------------- *
@@ -77,7 +78,8 @@ void MainWindow::showImportPhongModelsDialog()
 void MainWindow::showImportPbrModelsDialog()
 {
     ImportPbrModelsDialog dlg(this);
-    dlg.exec();
+    if (dlg.exec() == QDialog::Accepted)
+        impl->controller->importModels(dlg.models());
 }
 
 /* ---------------------------------------------------------------- *
@@ -91,19 +93,6 @@ void MainWindow::on_actionViewPBRSphere_triggered()
  * ---------------------------------------------------------------- */
 void MainWindow::on_actionImportModelsPhong_triggered()
 {
-//    const QString filepath =
-//        QFileDialog::getOpenFileName(this, "Select Model",
-//                                    QDir::currentPath(),
-//                                     "*.obj *.fbx");
-//    if (filepath.isEmpty())
-//        return;
-
-//    if (!impl->controller->importModel(filepath))
-//    {
-//        QMessageBox::critical(this, "Model Import Failed",
-//                              "Failed to import model from " + filepath);
-//    }
-
     showImportPhongModelsDialog();
 }
 
@@ -130,6 +119,14 @@ void MainWindow::on_actionSaveImage_triggered()
         QMessageBox::critical(this, "Image Save Failed",
                               "Failed to save image to " + filepath);
     }
+}
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+void MainWindow::on_actionAbout_triggered()
+{
+    AboutDialog dlg(this);
+    dlg.exec();
 }
 
 } // namespace rasperi

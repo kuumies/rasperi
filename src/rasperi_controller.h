@@ -31,8 +31,10 @@ public:
     void setImageSize(int w, int h);
     void rasterize(bool filled);
     void showUi();
+    void viewPbrSphereScene();
     bool importModel(const QString& filepath);
-    bool importModels(const std::vector<Model>& models);
+    bool importModels(const std::vector<Model>& models,
+                      bool moveRelatedToOrigo = true);
     bool saveImage(const QString& filepath);
 
 private:

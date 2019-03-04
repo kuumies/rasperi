@@ -57,7 +57,7 @@
   </action>
   <action name="actionImportModelsPhong">
    <property name="text">
-    <string>Import Models from File With Phong Material...</string>
+    <string>Import Phong Shaded Models from File</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+I</string>
@@ -78,7 +78,7 @@
   </action>
   <action name="actionImportModelsPbr">
    <property name="text">
-    <string>Import Models from File With PBR Material...</string>
+    <string>Import PBR Shaded Models from File</string>
    </property>
   </action>
   <action name="actionAbout">

@@ -324,71 +324,6 @@ struct Controller::Impl
         pbrIblBrdfIntegration.brdfIntegration2dMap.toQImage().save("/temp/00_brdfIntegration2dMap.bmp");
     }
 
-//    /* ------------------------------------------------------------ *
-//     * ------------------------------------------------------------ */
-//    void renderDefaultScene(int w, int h)
-//    {
-//        Vertex v1, v2;
-//        v1.position.x = -4.0;
-//        v1.color.r = 1.0;
-//        v1.color.a = 1.0;
-//        v2.position.x =  4.0;
-//        v2.color.b = 1.0;
-//        v2.color.a = 1.0;
-
-//        Mesh line;
-//        line.vertices.push_back(v1);
-//        line.vertices.push_back(v2);
-//        line.indices.push_back(0);
-//        line.indices.push_back(1);
-
-//        Sphere sphere(1.0, 64, 64);
-//        Quad q;
-
-//        Rasterizer r(w, h);
-//        r.clear();
-//        r.setNormalMode(Rasterizer::NormalMode::Coarse);
-//        r.drawEdgeLineTriangleMesh(&sphere);
-//        r.drawLineMesh(&line);
-//        r.drawFilledTriangleMesh(&q);
-
-//        ColorFramebuffer colorFramebuffer = r.colorFramebuffer();
-//        image = colorFramebuffer.toQImage();
-//    }
-
-//    void renderModels(int w, int h,
-//                      std::vector<ModelImporter::Model>& models)
-//    {
-//        BoundingBox bb;
-//        for (const ModelImporter::Model& model : models)
-//            for (const Vertex& v : model.mesh->vertices)
-//                bb.update(v.position);
-
-//        //qDebug() << bb.min.z << bb.max.z;
-//        double zDepth = 0.0;
-//        zDepth = std::max(zDepth, std::abs(bb.min.z) + std::abs(bb.max.z));
-//        zDepth = std::max(zDepth, std::abs(bb.min.y) + std::abs(bb.max.y));
-//        zDepth = std::max(zDepth, std::abs(bb.min.x) + std::abs(bb.max.x));
-//        glm::dvec3 center = (bb.max - bb.min) * 0.5;
-
-//        glm::dmat4 view = glm::translate(glm::dmat4(1.0), glm::dvec3(0.0, center.y, zDepth * 1.4));
-//        glm::dmat4 proj = glm::perspective(M_PI * 0.25, w / double(h), 0.1, zDepth * 2);
-
-//        Rasterizer r(w, h);
-//        r.clear();
-//        r.setViewMatrix(view);
-//        r.setProjectionMatrix(proj);
-//        r.setNormalMode(Rasterizer::NormalMode::Coarse);
-//        for (ModelImporter::Model& model : models)
-//        {
-//            r.setMaterial(*model.material);
-//            r.drawEdgeLineTriangleMesh(model.mesh.get());
-//        }
-
-//        ColorFramebuffer colorFramebuffer = r.colorFramebuffer();
-//        image = colorFramebuffer.toQImage();
-//    }
-
     Controller* self = nullptr;
     QImage image;
     MainWindow mainWindow;
@@ -445,6 +380,27 @@ void Controller::showUi()
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
+void Controller::viewPbrSphereScene()
+{
+    Model m1;
+    m1.mesh = std::make_shared<Sphere>(1.0, 32, 16);
+    m1.material = std::make_shared<Material>();
+    m1.material->model = Material::Model::Pbr;
+    m1.transform = std::make_shared<Transform>();
+    m1.transform->position.x = -1;
+
+    Model m2;
+    m2.mesh = std::make_shared<Sphere>(1.0, 32, 16);
+    m2.material = std::make_shared<Material>();
+    m2.material->model = Material::Model::Pbr;
+    m2.transform = std::make_shared<Transform>();
+    m2.transform->position.x = 1;
+
+    importModels( { m1, m2 }, false);
+}
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
 bool Controller::importModel(const QString& filepath)
 {
     std::vector<Model> models =
@@ -457,7 +413,8 @@ bool Controller::importModel(const QString& filepath)
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-bool Controller::importModels(const std::vector<Model>& models)
+bool Controller::importModels(const std::vector<Model>& models,
+                              bool moveRelatedToOrigo)
 {
     // Model bounding box
     Impl::BoundingBox bb;
@@ -465,11 +422,25 @@ bool Controller::importModels(const std::vector<Model>& models)
         for (const Vertex& v : model.mesh->vertices)
             bb.update(v.position);
 
-    // Model center point to origo
-    glm::dvec3 center = (bb.max + bb.min) * 0.5;
-    glm::dvec3 toOrigo = center - glm::dvec3(0.0);
+    // PBR
     for (const Model& model : models)
-        model.transform->position = -toOrigo;
+    {
+        if (model.material->model != Material::Model::Pbr)
+            continue;
+
+        model.material->pbr.irradiance = &impl->pbrIblIrradiance.irradianceCubemap;
+        model.material->pbr.prefilter= &impl->pbrIblPrefilter.prefilterCubemap;
+        model.material->pbr.brdfIntegration= &impl->pbrIblBrdfIntegration.brdfIntegration2dMap;
+    }
+
+    // Model center point to origo
+    if (moveRelatedToOrigo)
+    {
+        glm::dvec3 center = (bb.max + bb.min) * 0.5;
+        glm::dvec3 toOrigo = center - glm::dvec3(0.0);
+        for (const Model& model : models)
+            model.transform->position = -toOrigo;
+    }
 
     // Fit camera to view the whole model
     glm::dvec3 size = bb.max - bb.min;

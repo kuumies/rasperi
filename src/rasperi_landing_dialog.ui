@@ -41,7 +41,7 @@
    <item>
     <widget class="QCommandLinkButton" name="commandLinkButtonImportPhong">
      <property name="text">
-      <string>Import models from file with Phong material</string>
+      <string>Import Phong shaded models from file</string>
      </property>
      <property name="icon">
       <iconset>
@@ -58,7 +58,7 @@
    <item>
     <widget class="QCommandLinkButton" name="commandLinkButtonImportPbr">
      <property name="text">
-      <string>Import models from file PBR material</string>
+      <string>Import PBR shaded models from file</string>
      </property>
      <property name="icon">
       <iconset>
