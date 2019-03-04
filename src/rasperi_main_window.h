@@ -23,8 +23,16 @@ public:
         Controller* controller,
         QWidget* parent = nullptr);
 
+    void showLandingDialog();
+
 private slots:
-    void on_actionImportModel_triggered();
+    void viewPbrSphereScene();
+    void showImportPhongModelsDialog();
+    void showImportPbrModelsDialog();
+
+    void on_actionViewPBRSphere_triggered();
+    void on_actionImportModelsPhong_triggered();
+    void on_actionImportModelsPbr_triggered();
     void on_actionSaveImage_triggered();
 
 private:

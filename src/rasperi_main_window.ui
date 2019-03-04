@@ -27,13 +27,24 @@
     <property name="title">
      <string>F&amp;ile</string>
     </property>
-    <addaction name="actionImportModel"/>
+    <addaction name="separator"/>
+    <addaction name="actionViewPBRSphere"/>
+    <addaction name="separator"/>
+    <addaction name="actionImportModelsPhong"/>
+    <addaction name="actionImportModelsPbr"/>
     <addaction name="separator"/>
     <addaction name="actionSaveImage"/>
     <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionAbout"/>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuHelp"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionExit">
@@ -44,9 +55,9 @@
     <string>Esc</string>
    </property>
   </action>
-  <action name="actionImportModel">
+  <action name="actionImportModelsPhong">
    <property name="text">
-    <string>Import Model...</string>
+    <string>Import Models from File With Phong Material...</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+I</string>
@@ -58,6 +69,21 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+S</string>
+   </property>
+  </action>
+  <action name="actionViewPBRSphere">
+   <property name="text">
+    <string>Load PBR Sphere Scene</string>
+   </property>
+  </action>
+  <action name="actionImportModelsPbr">
+   <property name="text">
+    <string>Import Models from File With PBR Material...</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>About...</string>
    </property>
   </action>
  </widget>

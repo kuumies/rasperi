@@ -266,6 +266,7 @@ std::vector<Model> ModelImporter::import(const QString& filepath) const
                      << mesh->HasTangentsAndBitangents();
 
             Model model;
+            model.name = std::string(mesh->mName.C_Str());
             model.mesh = impl->importMesh(mesh);
             model.transform = impl->importTransform(child->mName, scene);
             if (scene->HasMaterials())

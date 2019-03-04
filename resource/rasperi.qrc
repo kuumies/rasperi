@@ -1,5 +1,9 @@
 <RCC>
     <qresource prefix="/">
         <file>icons/resource_usage_protect.png</file>
+        <file>icons/4061-32x32x32.png</file>
+        <file>icons/door_out.png</file>
+        <file>icons/99-32x32x32.png</file>
+        <file>icons/481-32x32x32.png</file>
     </qresource>
 </RCC>

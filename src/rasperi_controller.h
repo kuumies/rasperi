@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <vector>
 #include <memory>
 #include <QtCore/QString>
 
@@ -15,6 +16,7 @@ namespace rasperi
 
 class Camera;
 class CameraController;
+struct Model;
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
@@ -30,6 +32,7 @@ public:
     void rasterize(bool filled);
     void showUi();
     bool importModel(const QString& filepath);
+    bool importModels(const std::vector<Model>& models);
     bool saveImage(const QString& filepath);
 
 private:

@@ -7,6 +7,9 @@
 #include "ui_rasperi_main_window.h"
 #include <QtWidgets/QFileDialog>
 #include <QtWidgets/QMessageBox>
+#include "rasperi_landing_dialog.h"
+#include "rasperi_import_pbr_models_dialog.h"
+#include "rasperi_import_phong_models_dialog.h"
 
 namespace kuu
 {
@@ -37,20 +40,78 @@ MainWindow::MainWindow(Controller* controller, QWidget* parent)
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-void MainWindow::on_actionImportModel_triggered()
+void MainWindow::showLandingDialog()
 {
-    const QString filepath =
-        QFileDialog::getOpenFileName(this, "Select Model",
-                                    QDir::currentPath(),
-                                     "*.obj *.fbx");
-    if (filepath.isEmpty())
-        return;
+    LandingDialog dlg(this);
 
-    if (!impl->controller->importModel(filepath))
-    {
-        QMessageBox::critical(this, "Model Import Failed",
-                              "Failed to import model from " + filepath);
-    }
+    connect(&dlg, &LandingDialog::viewPbrSphere,
+            this, &MainWindow::viewPbrSphereScene);
+    connect(&dlg, &LandingDialog::importPhong,
+            this, &MainWindow::showImportPhongModelsDialog);
+    connect(&dlg, &LandingDialog::importPbr,
+            this, &MainWindow::showImportPbrModelsDialog);
+    connect(&dlg, &LandingDialog::exit,
+            this, &MainWindow::close);
+
+    dlg.exec();
+}
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+void MainWindow::viewPbrSphereScene()
+{
+
+}
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+void MainWindow::showImportPhongModelsDialog()
+{
+    ImportPhongModelsDialog dlg(this);
+    if (dlg.exec() == QDialog::Accepted)
+        impl->controller->importModels(dlg.models());
+}
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+void MainWindow::showImportPbrModelsDialog()
+{
+    ImportPbrModelsDialog dlg(this);
+    dlg.exec();
+}
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+void MainWindow::on_actionViewPBRSphere_triggered()
+{
+    viewPbrSphereScene();
+}
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+void MainWindow::on_actionImportModelsPhong_triggered()
+{
+//    const QString filepath =
+//        QFileDialog::getOpenFileName(this, "Select Model",
+//                                    QDir::currentPath(),
+//                                     "*.obj *.fbx");
+//    if (filepath.isEmpty())
+//        return;
+
+//    if (!impl->controller->importModel(filepath))
+//    {
+//        QMessageBox::critical(this, "Model Import Failed",
+//                              "Failed to import model from " + filepath);
+//    }
+
+    showImportPhongModelsDialog();
+}
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+void MainWindow::on_actionImportModelsPbr_triggered()
+{
+    showImportPbrModelsDialog();
 }
 
 /* ---------------------------------------------------------------- *

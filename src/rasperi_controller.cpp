@@ -440,6 +440,7 @@ void Controller::showUi()
     impl->mainWindow.showMaximized();
     QApplication::processEvents();
     impl->createPbrIbl();
+    impl->mainWindow.showLandingDialog();
 }
 
 /* ---------------------------------------------------------------- *
@@ -451,6 +452,13 @@ bool Controller::importModel(const QString& filepath)
     if (models.empty())
         return false;
 
+    return importModels(models);
+}
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+bool Controller::importModels(const std::vector<Model>& models)
+{
     // Model bounding box
     Impl::BoundingBox bb;
     for (const Model& model : models)
