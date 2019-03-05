@@ -16,6 +16,7 @@ namespace rasperi
 
 class Camera;
 class CameraController;
+class MainWindow;
 struct Model;
 
 /* ---------------------------------------------------------------- *
@@ -27,6 +28,7 @@ public:
 
     std::shared_ptr<Camera> camera() const;
     std::shared_ptr<CameraController> cameraController() const;
+    MainWindow& mainWindow() const;
 
     void setImageSize(int w, int h);
     void rasterize(bool filled);

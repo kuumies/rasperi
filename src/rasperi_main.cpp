@@ -6,6 +6,7 @@
 #include <iostream>
 #include <QtWidgets/QApplication>
 #include "rasperi_controller.h"
+#include "rasperi_main_window.h"
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
@@ -20,9 +21,9 @@ int main(int argc, char** argv)
     {
         Controller controller;
         controller.showUi();
-        controller.rasterize(true);
 
-        app.exec();
+        if (controller.mainWindow().isVisible())
+            app.exec();
     }
     catch(const std::exception& ex)
     {

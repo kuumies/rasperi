@@ -32,8 +32,9 @@ ImportPbrModelsDialog::ImportPbrModelsDialog(QWidget* parent)
     , impl(std::make_shared<Impl>())
 {
     impl->ui.setupUi(this);
-    impl->dir = QDir::current().absoluteFilePath("models");
+    impl->dir = QDir::current().absoluteFilePath("models/pbr");
     impl->ui.buttonBox->button(QDialogButtonBox::Ok)->setText("Import All");
+    impl->ui.buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
 }
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
@@ -52,7 +53,7 @@ void ImportPbrModelsDialog::on_pushButtonBrowse_clicked()
         return;
 
     QProgressDialog dlg(this);
-    dlg.setWindowTitle("Importing models...");
+    dlg.setWindowTitle("Importing models");
     dlg.setLabelText("Importing models... please wait...");
     dlg.setMinimumWidth(400);
     dlg.setRange(0, 0);
@@ -100,6 +101,7 @@ void ImportPbrModelsDialog::on_pushButtonBrowse_clicked()
 
     impl->dir = QFileInfo(filepath).absoluteDir();
 
+    impl->ui.buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
     impl->ui.pushButtonBrowseAlbedo->setEnabled(true);
     impl->ui.pushButtonBrowseRoughness->setEnabled(true);
     impl->ui.pushButtonBrowseMetallic->setEnabled(true);

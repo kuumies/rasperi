@@ -362,7 +362,17 @@ struct TrianglePrimitiveRasterizer::Impl
                               sunIntensity * nDotL;
 
         // -----------------------------------------------------------
-        // Calculate irradiance
+        // Calculate irradiance from IBL
+
+        if (!material.pbr.irradiance ||
+            !material.pbr.prefilter ||
+            !material.pbr.brdfIntegration)
+        {
+            glm::dvec3 color = radiance;
+            color = color / (color + glm::dvec3(1.0));
+            color = pow(color, glm::dvec3(1.0/2.2));
+            return glm::dvec4(color, 1.0);
+        }
 
         // Sample diffuse irradiance.
         texture_cube_mapping::TextureCoordinate tc =

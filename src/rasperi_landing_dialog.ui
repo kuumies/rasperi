@@ -17,14 +17,14 @@
    <item>
     <widget class="QLabel" name="label">
      <property name="text">
-      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:14pt; font-weight:600;&quot;&gt;Welcome to &lt;/span&gt;&lt;span style=&quot; font-size:14pt; font-weight:600; font-style:italic;&quot;&gt;Rasperi rasterizer&lt;/span&gt;&lt;span style=&quot; font-size:14pt; font-weight:600;&quot;&gt;. What would you like to do?&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:14pt; font-weight:600;&quot;&gt;Welcome to &lt;/span&gt;&lt;span style=&quot; font-size:14pt; font-weight:600; font-style:italic;&quot;&gt;Rasperi Rasterizer&lt;/span&gt;&lt;span style=&quot; font-size:14pt; font-weight:600;&quot;&gt;. What would you like to do?&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QCommandLinkButton" name="commandLinkButtonViewPbrSpheres">
      <property name="text">
-      <string>Load PBR spheres scene</string>
+      <string>Load PBR Spheres Scene</string>
      </property>
      <property name="icon">
       <iconset>
@@ -41,7 +41,7 @@
    <item>
     <widget class="QCommandLinkButton" name="commandLinkButtonImportPhong">
      <property name="text">
-      <string>Import Phong shaded models from file</string>
+      <string>Import Phong Models...</string>
      </property>
      <property name="icon">
       <iconset>
@@ -58,7 +58,7 @@
    <item>
     <widget class="QCommandLinkButton" name="commandLinkButtonImportPbr">
      <property name="text">
-      <string>Import PBR shaded models from file</string>
+      <string>Import PBR Models...</string>
      </property>
      <property name="icon">
       <iconset>

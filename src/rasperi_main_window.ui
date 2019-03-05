@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>Rasperi Rasterizer</string>
   </property>
   <widget class="QWidget" name="centralwidget"/>
   <widget class="QMenuBar" name="menubar">
@@ -57,7 +57,7 @@
   </action>
   <action name="actionImportModelsPhong">
    <property name="text">
-    <string>Import Phong Shaded Models from File</string>
+    <string>Import Phong Models...</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+I</string>
@@ -75,10 +75,16 @@
    <property name="text">
     <string>Load PBR Sphere Scene</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+Y</string>
+   </property>
   </action>
   <action name="actionImportModelsPbr">
    <property name="text">
-    <string>Import PBR Shaded Models from File</string>
+    <string>Import PBR Models...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+U</string>
    </property>
   </action>
   <action name="actionAbout">

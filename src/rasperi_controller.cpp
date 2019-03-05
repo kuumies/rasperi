@@ -174,11 +174,9 @@ struct Controller::Impl
         , pbrIblIrradiance(512)
         , pbrIblPrefilter(512)
         , pbrIblBrdfIntegration(512)
-    {
-        createPbrIbl();
-        loadPbrModels();
-    }
+    {}
 
+#if 0
     /* ------------------------------------------------------------- *
      * ------------------------------------------------------------- */
     void loadPbrModels()
@@ -238,6 +236,7 @@ struct Controller::Impl
         for (auto& model : models)
             model.material = material;
     }
+#endif
 
    /* ------------------------------------------------------------- *
     * ------------------------------------------------------------- */
@@ -297,8 +296,6 @@ struct Controller::Impl
      * ------------------------------------------------------------- */
     void createPbrIbl()
     {
-        std::cout << __FUNCTION__ << std::endl;
-
         QDir dir("/temp/");
 
         if (!pbrIblIrradiance.read(dir))
@@ -318,10 +315,6 @@ struct Controller::Impl
             pbrIblBrdfIntegration.run();
             pbrIblBrdfIntegration.write(dir);
         }
-
-        pbrIblIrradiance.irradianceCubemap.toQImage().save("/temp/00_irradianceCubemap.bmp");
-        pbrIblPrefilter.prefilterCubemap.toQImage().save("/temp/00_prefilterCubemap.bmp");
-        pbrIblBrdfIntegration.brdfIntegration2dMap.toQImage().save("/temp/00_brdfIntegration2dMap.bmp");
     }
 
     Controller* self = nullptr;
@@ -355,6 +348,11 @@ std::shared_ptr<CameraController> Controller::cameraController() const
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
+MainWindow &Controller::mainWindow() const
+{ return impl->mainWindow; }
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
 void Controller::setImageSize(int w, int h)
 {
     impl->rasterizer = Rasterizer(w, h);
@@ -370,11 +368,9 @@ void Controller::rasterize(bool filled)
  * ---------------------------------------------------------------- */
 void Controller::showUi()
 {
-    impl->mainWindow.setWindowTitle("Rasperi");
     impl->mainWindow.setCentralWidget(&impl->imageWidget);
     impl->mainWindow.showMaximized();
     QApplication::processEvents();
-    impl->createPbrIbl();
     impl->mainWindow.showLandingDialog();
 }
 
@@ -422,15 +418,23 @@ bool Controller::importModels(const std::vector<Model>& models,
         for (const Vertex& v : model.mesh->vertices)
             bb.update(v.position);
 
-    // PBR
+    std::vector<Model> pbrModels;
+
     for (const Model& model : models)
     {
         if (model.material->model != Material::Model::Pbr)
             continue;
+        pbrModels.push_back(model);
+    }
 
-        model.material->pbr.irradiance = &impl->pbrIblIrradiance.irradianceCubemap;
-        model.material->pbr.prefilter= &impl->pbrIblPrefilter.prefilterCubemap;
-        model.material->pbr.brdfIntegration= &impl->pbrIblBrdfIntegration.brdfIntegration2dMap;
+    if (!pbrModels.empty())
+        impl->createPbrIbl();
+
+    for (const Model& model : pbrModels)
+    {
+        model.material->pbr.irradiance      = &impl->pbrIblIrradiance.irradianceCubemap;
+        model.material->pbr.prefilter       = &impl->pbrIblPrefilter.prefilterCubemap;
+        model.material->pbr.brdfIntegration = &impl->pbrIblBrdfIntegration.brdfIntegration2dMap;
     }
 
     // Model center point to origo

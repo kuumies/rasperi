@@ -32,8 +32,9 @@ ImportPhongModelsDialog::ImportPhongModelsDialog(QWidget* parent)
     , impl(std::make_shared<Impl>())
 {
     impl->ui.setupUi(this);
-    impl->dir = QDir::current().absoluteFilePath("models");
+    impl->dir = QDir::current().absoluteFilePath("models/phong");
     impl->ui.buttonBox->button(QDialogButtonBox::Ok)->setText("Import All");
+    impl->ui.buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
 }
 
 /* ---------------------------------------------------------------- *
@@ -53,7 +54,7 @@ void ImportPhongModelsDialog::on_pushButtonBrowse_clicked()
         return;
 
     QProgressDialog dlg(this);
-    dlg.setWindowTitle("Importing models...");
+    dlg.setWindowTitle("Importing models");
     dlg.setLabelText("Importing models... please wait...");
     dlg.setMinimumWidth(400);
     dlg.setRange(0, 0);
@@ -101,8 +102,22 @@ void ImportPhongModelsDialog::on_pushButtonBrowse_clicked()
 
     impl->dir = QFileInfo(filepath).absoluteDir();
 
+    impl->ui.labelAmbient->setEnabled(true);
+    impl->ui.labelAmbientText->setEnabled(true);
+    impl->ui.labelDiffuse->setEnabled(true);
+    impl->ui.labelDiffuseText->setEnabled(true);
+    impl->ui.labelSpecular->setEnabled(true);
+    impl->ui.labelSpecularText->setEnabled(true);
+    impl->ui.labelSpecularPower->setEnabled(true);
+    impl->ui.labelSpecularPowerText->setEnabled(true);
+    impl->ui.labelNormal->setEnabled(true);
+    impl->ui.labelNormalText->setEnabled(true);
+
+    impl->ui.buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
+    impl->ui.lineEditName->setEnabled(true);
     impl->ui.lineEditName->setText(QFileInfo(filepath).fileName());
     impl->ui.comboBoxModels->blockSignals(true);
+    impl->ui.comboBoxModels->setEnabled(true);
     impl->ui.comboBoxModels->clear();
     for (const auto& model : impl->models)
         impl->ui.comboBoxModels->addItem(QString::fromStdString(model.name));
