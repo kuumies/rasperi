@@ -75,6 +75,55 @@ struct Sphere : public Mesh
             indices.push_back(ic);
             indices.push_back(id);
         }
+
+        generateTangents();
+    }
+
+    void generateTangents()
+    {
+        bool triangles = (indices.size() % 3) == 0;
+        if (!triangles)
+        {
+            std::cerr << __FUNCTION__
+                      << ": Mesh is not a triangle mesh."
+                      << std::endl;
+            return;
+        }
+
+        for (size_t i = 0; i < indices.size(); i += 3)
+        {
+            Vertex& v1 = vertices[indices[i + 0]];
+            Vertex& v2 = vertices[indices[i + 1]];
+            Vertex& v3 = vertices[indices[i + 2]];
+
+            glm::dvec3 edge1 = v2.position - v1.position;
+            glm::dvec3 edge2 = v3.position - v1.position;
+            glm::dvec2 dUV1 = v2.texCoord - v1.texCoord;
+            glm::dvec2 dUV2 = v3.texCoord - v1.texCoord;
+
+            double f = 1.0 / (dUV1.x * dUV2.y -
+                              dUV2.x * dUV1.y);
+
+            glm::dvec3 tangent;
+            tangent.x = f * (dUV2.y * edge1.x - dUV1.y * edge2.x);
+            tangent.y = f * (dUV2.y * edge1.y - dUV1.y * edge2.y);
+            tangent.z = f * (dUV2.y * edge1.z - dUV1.y * edge2.z);
+            tangent = glm::normalize(tangent);
+
+            glm::dvec3 bitangent;
+            bitangent.x = f * (-dUV2.x * edge1.x + dUV1.x * edge2.x);
+            bitangent.y = f * (-dUV2.x * edge1.y + dUV1.x * edge2.y);
+            bitangent.z = f * (-dUV2.x * edge1.z + dUV1.x * edge2.z);
+            bitangent = glm::normalize(bitangent);
+
+            v1.tangent = tangent;
+            v2.tangent = tangent;
+            v3.tangent = tangent;
+
+            v1.bitangent = bitangent;
+            v2.bitangent = bitangent;
+            v3.bitangent = bitangent;
+        }
     }
 };
 
@@ -525,7 +574,7 @@ void Controller::viewPbrSphereScene()
         m.material->pbr.roughnessSampler.setMap(images[sphere.roughness]);
         m.material->pbr.metalnessSampler.setMap(images[sphere.metal]);
         m.material->pbr.aoSampler.setMap(images[sphere.ao]);
-        //m.material->normalSampler.setMap(images[sphere.normal]);
+        m.material->normalSampler.setMap(images[sphere.normal]);
         m.transform = std::make_shared<Transform>();
         m.transform->position = sphere.position;
         models.push_back(m);
