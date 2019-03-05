@@ -6,8 +6,10 @@
 #include "rasperi_rasterizer.h"
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include "rasperi_sampler.h"
+#include "rasperi_material.h"
+#include "rasperi_mesh.h"
 #include "rasperi_primitive_rasterizer.h"
+#include "rasperi_sampler.h"
 
 namespace kuu
 {

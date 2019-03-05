@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The implementation of types of kuu::rasperi::Mesh class.
+   The implementation of kuu::rasperi::struct class.
  * ---------------------------------------------------------------- */
  
 #include "rasperi_mesh.h"

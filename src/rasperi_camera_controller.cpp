@@ -4,11 +4,8 @@
  * -----------------------------------------------------------------*/
 
 #include "rasperi_camera_controller.h"
-#include <cmath>
-#include <iostream>
 #include <QtGui/QMouseEvent>
 #include <QtGui/QWheelEvent>
-
 #include "rasperi_camera.h"
 #include "rasperi_controller.h"
 

@@ -6,6 +6,7 @@
 #include "rasperi_pbr_ibl_irradiance.h"
 #include <functional>
 #include <iostream>
+#include <QtCore/QDir>
 #include "rasperi_cube_camera.h"
 #include "rasperi_texture_cube.h"
 #include "rasperi_texture_cube_mapping.h"

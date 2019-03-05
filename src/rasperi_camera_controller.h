@@ -6,7 +6,6 @@
 #pragma once
 
 #include <glm/vec4.hpp>
-#include <functional>
 #include <memory>
 
 class QKeyEvent;

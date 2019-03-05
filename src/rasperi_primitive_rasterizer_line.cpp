@@ -6,6 +6,7 @@
 #include "rasperi_primitive_rasterizer.h"
 #include <QtCore/QDebug>
 #include <QtCore/QTime>
+#include "rasperi_mesh.h"
 
 namespace kuu
 {

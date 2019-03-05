@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The implementation of types of kuu::rasperi::Sampler class.
+   The implementation of kuu::rasperi::Sampler class.
  * ---------------------------------------------------------------- */
  
 #include "rasperi_sampler.h"
@@ -8,6 +8,7 @@
 #include <iostream>
 #include <glm/gtx/string_cast.hpp>
 #include <glm/geometric.hpp>
+#include <QtGui/QImage>
 
 namespace kuu
 {

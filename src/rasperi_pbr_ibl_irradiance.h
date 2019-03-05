@@ -6,11 +6,10 @@
 #pragma once
 
 #include <memory>
-#include <QtCore/QDir>
-#include <QtGui/QImage>
-#include "rasperi_texture_2d.h"
 #include "rasperi_texture_cube.h"
 
+class QDir;
+class QImage;
 
 namespace kuu
 {

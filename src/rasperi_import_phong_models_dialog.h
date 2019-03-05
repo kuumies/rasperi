@@ -7,12 +7,13 @@
 
 #include <memory>
 #include <QtWidgets/QDialog>
-#include "rasperi_model.h"
 
 namespace kuu
 {
 namespace rasperi
 {
+
+class Model;
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */

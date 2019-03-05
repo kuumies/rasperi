@@ -8,13 +8,14 @@
 #include <memory>
 #include <glm/mat4x4.hpp>
 #include "rasperi_framebuffer.h"
-#include "rasperi_mesh.h"
-#include "rasperi_material.h"
 
 namespace kuu
 {
 namespace rasperi
 {
+
+struct Material;
+struct Mesh;
 
 /* ---------------------------------------------------------------- *
    A rasterizer for rendering widgets with three-dimensional

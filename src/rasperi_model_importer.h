@@ -7,15 +7,15 @@
 
 #include <memory>
 #include <vector>
-#include <glm/gtc/quaternion.hpp>
-#include <glm/vec3.hpp>
-#include <QtCore/QString>
-#include "rasperi_model.h"
+
+class QString;
 
 namespace kuu
 {
 namespace rasperi
 {
+
+class Model;
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */

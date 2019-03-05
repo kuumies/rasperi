@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The definition of types of kuu::rasperi::Sampler class.
+   The definition of kuu::rasperi::Sampler class.
  * ---------------------------------------------------------------- */
  
 #pragma once
@@ -8,7 +8,8 @@
 #include <memory>
 #include <glm/vec2.hpp>
 #include <glm/vec4.hpp>
-#include <QtGui/QImage>
+
+class QImage;
 
 namespace kuu
 {

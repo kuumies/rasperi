@@ -6,8 +6,9 @@
 #pragma once
 
 #include <memory>
-#include <QtCore/QDir>
 #include "rasperi_texture_cube.h"
+
+class QDir;
 
 namespace kuu
 {

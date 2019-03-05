@@ -11,6 +11,7 @@
 #include <glm/geometric.hpp>
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
+#include "rasperi_model.h"
 
 namespace kuu
 {

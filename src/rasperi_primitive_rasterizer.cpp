@@ -4,6 +4,7 @@
  * ---------------------------------------------------------------- */
  
 #include "rasperi_primitive_rasterizer.h"
+#include <iostream>
 
 namespace kuu
 {

@@ -12,6 +12,7 @@
 #include "rasperi_image_widget.h"
 #include "rasperi_main_window.h"
 #include "rasperi_model_importer.h"
+#include "rasperi_model.h"
 #include "rasperi_pbr_ibl_irradiance.h"
 #include "rasperi_pbr_ibl_prefilter.h"
 #include "rasperi_pbr_ibl_brdf_integration.h"
@@ -72,9 +73,6 @@ struct Sphere : public Mesh
             indices.push_back(ic);
             indices.push_back(id);
         }
-
-        //albedoMap     = "/temp/my_msp.png";
-//        smoothNormals = false;
     }
 };
 

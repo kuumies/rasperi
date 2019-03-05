@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The implementation of types of kuu::rasperi::Camera class.
+   The implementation of kuu::rasperi::Camera class.
  * ---------------------------------------------------------------- */
  
 #include "rasperi_camera.h"

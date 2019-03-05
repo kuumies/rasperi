@@ -1,12 +1,10 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The definition of types of kuu::rasperi::Mesh class.
+   The definition of kuu::rasperi::Mesh struct.
  * ---------------------------------------------------------------- */
  
 #pragma once
 
-#include <iostream>
-#include <memory>
 #include <vector>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>

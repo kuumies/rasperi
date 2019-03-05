@@ -5,12 +5,8 @@
  
 #pragma once
 
-#include <iostream>
 #include <memory>
 #include <vector>
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
 #include <QtGui/QImage>
 
 namespace kuu

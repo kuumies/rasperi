@@ -10,6 +10,7 @@
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QProgressDialog>
 #include "rasperi_model_importer.h"
+#include "rasperi_model.h"
 
 namespace kuu
 {

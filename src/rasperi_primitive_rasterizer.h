@@ -9,14 +9,15 @@
 #include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
 #include "rasperi_framebuffer.h"
-#include "rasperi_material.h"
-#include "rasperi_mesh.h"
 #include "rasperi_rasterizer.h"
 
 namespace kuu
 {
 namespace rasperi
 {
+
+struct Mesh;
+struct Material;
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */

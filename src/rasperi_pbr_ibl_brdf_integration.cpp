@@ -6,22 +6,11 @@
 #include "rasperi_pbr_ibl_brdf_integration.h"
 #include <array>
 #include <functional>
-#include <iostream>
-#include <glm/gtc/matrix_inverse.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/quaternion.hpp>
-#include <glm/gtx/string_cast.hpp>
+#include <glm/geometric.hpp>
+#include <glm/trigonometric.hpp>
+#include <glm/mat4x4.hpp>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
-#include <QtCore/QDataStream>
-#include <QtCore/QFile>
-#include <QtGui/QPainter>
-#include "rasperi_cube_camera.h"
-#include "rasperi_framebuffer.h"
-#include "rasperi_sampler.h"
-#include "rasperi_texture_cube.h"
-#include "rasperi_texture_cube_mapping.h"
 
 namespace kuu
 {

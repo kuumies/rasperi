@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The definition of kuu::rasperi::Material class.
+   The definition of kuu::rasperi::Material struct.
  * ---------------------------------------------------------------- */
  
 #pragma once

@@ -11,6 +11,7 @@
 #include "rasperi_landing_dialog.h"
 #include "rasperi_import_pbr_models_dialog.h"
 #include "rasperi_import_phong_models_dialog.h"
+#include "rasperi_model.h"
 
 namespace kuu
 {

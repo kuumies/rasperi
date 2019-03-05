@@ -7,7 +7,8 @@
 
 #include <vector>
 #include <memory>
-#include <QtCore/QString>
+
+class QString;
 
 namespace kuu
 {

@@ -5,6 +5,7 @@
  
 #include "rasperi_primitive_rasterizer.h"
 #include "rasperi_material.h"
+#include "rasperi_mesh.h"
 #include "rasperi_sampler.h"
 #include "rasperi_texture_cube_mapping.h"
 
