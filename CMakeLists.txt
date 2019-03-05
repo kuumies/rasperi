@@ -86,4 +86,5 @@ target_link_libraries(
 )
 
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
-INSTALL(DIRECTORY resource/models   DESTINATION bin)
+INSTALL(DIRECTORY resource/models       DESTINATION bin)
+INSTALL(DIRECTORY resource/pbr_textures DESTINATION bin)
