@@ -47,8 +47,7 @@ public:
     void drawEdgeLineTriangleMesh(Mesh* mesh);
     void drawLineMesh(Mesh* mesh);
 
-    ColorFramebuffer colorFramebuffer() const;
-    DepthFramebuffer depthFramebuffer() const;
+    Framebuffer& framebuffer() const;
 
 private:
     struct Impl;

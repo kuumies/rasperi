@@ -24,8 +24,7 @@ struct Material;
 class PrimitiveRasterizer
 {
 public:
-    PrimitiveRasterizer(ColorFramebuffer& colorbuffer,
-                        DepthFramebuffer& depthbuffer);
+    PrimitiveRasterizer(Framebuffer& framebuffer);
     virtual ~PrimitiveRasterizer();
 
     glm::dvec3 project(const glm::dmat4& m, const glm::dvec3& p);
@@ -34,8 +33,7 @@ public:
     void setRgba(int x, int y, glm::dvec4 c);
 
 protected:
-    ColorFramebuffer& colorbuffer;
-    DepthFramebuffer& depthbuffer;
+    Framebuffer& framebuffer;
 };
 
 /* ---------------------------------------------------------------- *
@@ -43,8 +41,7 @@ protected:
 class LinePrimitiveRasterizer : public PrimitiveRasterizer
 {
 public:
-    LinePrimitiveRasterizer(ColorFramebuffer& colorbuffer,
-                            DepthFramebuffer& depthbuffer);
+    LinePrimitiveRasterizer(Framebuffer& framebuffer);
 
     void rasterize(const Mesh& m, const glm::dmat4& matrix);
 
@@ -58,8 +55,7 @@ private:
 class TrianglePrimitiveRasterizer : public PrimitiveRasterizer
 {
 public:
-    TrianglePrimitiveRasterizer(ColorFramebuffer& colorbuffer,
-                                DepthFramebuffer& depthbuffer,
+    TrianglePrimitiveRasterizer(Framebuffer& framebuffer,
                                 Rasterizer::NormalMode normalMode);
 
     void rasterize(const Mesh& triangleMesh,

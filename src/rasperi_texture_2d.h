@@ -48,6 +48,16 @@ public:
 
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
+    int width() const
+    { return d->width; }
+
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
+    int height() const
+    { return d->height; }
+
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
     QImage toQImage() const
     {
         // See https://en.cppreference.com/w/cpp/language/typeid
@@ -84,7 +94,7 @@ public:
             switch(channels)
             {
                 case 1: return QImage(data.data(), d->width, d->height, QImage::Format_Grayscale8).copy();
-                case 4: return QImage(data.data(), d->width, d->height, QImage::Format_RGB32).rgbSwapped().copy();
+                case 4: return QImage(data.data(), d->width, d->height, QImage::Format_ARGB32).rgbSwapped().copy();
                 default: break;
             }
         }
@@ -94,12 +104,22 @@ public:
             switch(C)
             {
                 case 1: return QImage(data, d->width, d->height, QImage::Format_Grayscale8);
-                case 4: return QImage(data, d->width, d->height, QImage::Format_RGB32);
+                case 4: return QImage(data, d->width, d->height, QImage::Format_ARGB32);
                 default: break;
             }
 
         }
         return QImage();
+    }
+
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
+    void clear(const std::array<T, C>& value)
+    {
+        for (size_t y = 0; y < d->height; y++)
+        for (size_t x = 0; x < d->width;  x++)
+        for (int i = 0; i < C; ++i)
+            d->pixels[y * d->width * C + C * x + i] = value[i];
     }
 
     /* ------------------------------------------------------------ *

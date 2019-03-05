@@ -30,7 +30,6 @@ public:
      * ------------------------------------------------------------ */
     glm::dmat4 projectionMatrix;
     std::array<glm::dmat4, 6> viewMatrices;
-
 };
 
 } // namespace rasperi

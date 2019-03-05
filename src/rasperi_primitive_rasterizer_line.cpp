@@ -4,6 +4,7 @@
  * ---------------------------------------------------------------- */
  
 #include "rasperi_primitive_rasterizer.h"
+#include <array>
 #include <QtCore/QDebug>
 #include <QtCore/QTime>
 #include "rasperi_mesh.h"
@@ -50,13 +51,14 @@ struct LinePrimitiveRasterizer::Impl
             glm::dvec4 c = glm::mix(v1.color, v2.color, t);
 
             // Depth test.
-            double d = self->depthbuffer.get(p.x, p.y, 0);
+            double d = self->framebuffer.depthTex.pixel(p.x, p.y)[0];
             double z  = 1.0 / (      t  * 1.0 / p1.z +
                               (1.0 - t) * 1.0 / p2.z);
             if (z >= d)
                 continue;
 
-            self->depthbuffer.set(p.x, p.y, 0, z);
+            std::array<double, 1> dpix = { z };
+            self->framebuffer.depthTex.setPixel(p.x, p.y, dpix);
             self->setRgba(p.x, p.y, c);
         }
     }
@@ -66,9 +68,8 @@ struct LinePrimitiveRasterizer::Impl
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-LinePrimitiveRasterizer::LinePrimitiveRasterizer(ColorFramebuffer& colorbuffer,
-                        DepthFramebuffer& depthbuffer)
-    : PrimitiveRasterizer(colorbuffer, depthbuffer)
+LinePrimitiveRasterizer::LinePrimitiveRasterizer(Framebuffer& framebuffer)
+    : PrimitiveRasterizer(framebuffer)
     , impl(std::make_shared<Impl>(this))
 {}
 

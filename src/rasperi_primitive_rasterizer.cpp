@@ -4,6 +4,7 @@
  * ---------------------------------------------------------------- */
  
 #include "rasperi_primitive_rasterizer.h"
+#include <array>
 #include <iostream>
 
 namespace kuu
@@ -13,10 +14,8 @@ namespace rasperi
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-PrimitiveRasterizer::PrimitiveRasterizer(ColorFramebuffer& colorbuffer,
-                                         DepthFramebuffer& depthbuffer)
-    : colorbuffer(colorbuffer)
-    , depthbuffer(depthbuffer)
+PrimitiveRasterizer::PrimitiveRasterizer(Framebuffer& framebuffer)
+    : framebuffer(framebuffer)
 {}
 
 /* ---------------------------------------------------------------- *
@@ -50,7 +49,7 @@ glm::dvec3 PrimitiveRasterizer::transform(const glm::dmat4& m,
  * ---------------------------------------------------------------- */
 glm::ivec2 PrimitiveRasterizer::viewportTransform(const glm::dvec3& p)
 {
-    const glm::ivec2 vp(colorbuffer.width, colorbuffer.height);
+    const glm::ivec2 vp(framebuffer.colorTex.width(), framebuffer.colorTex.height());
     const glm::dvec2 halfViewport = glm::dvec2(vp) * 0.5;
 
     glm::ivec2 out;
@@ -77,14 +76,8 @@ void PrimitiveRasterizer::setRgba(int x, int y, glm::dvec4 c)
     unsigned char b = uchar(std::floor(c.b * 255.0));
     unsigned char a = uchar(std::floor(c.a * 255.0));
 
-    size_t loc = size_t(y * colorbuffer.width * colorbuffer.channels +
-                        x * colorbuffer.channels);
-
-    ColorFramebuffer::Data& d = *colorbuffer.data.get();
-    d[loc + 0] = r;
-    d[loc + 1] = g;
-    d[loc + 2] = b;
-    d[loc + 3] = a;
+    std::array<uchar, 4> pix = { r, g,b, a };
+    framebuffer.colorTex.setPixel(x, y, pix);
 }
 
 } // namespace rasperi

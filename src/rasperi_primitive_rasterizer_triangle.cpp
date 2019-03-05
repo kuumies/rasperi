@@ -110,13 +110,15 @@ struct TrianglePrimitiveRasterizer::Impl
             w3 /= area;
 
             // Depth test.
-            double d = self->depthbuffer.get(x, y, 0);
+            double d = self->framebuffer.depthTex.pixel(x, y)[0];
             double z  = 1.0 / (w1 * 1.0 / p1.z +
                                w2 * 1.0 / p2.z +
                                w3 * 1.0 / p3.z);
             if (z >= d)
                 continue;
-            self->depthbuffer.set(x, y, 0, z);
+
+            std::array<double, 1> pix = { z };
+            self->framebuffer.depthTex.setPixel(x, y, pix);
 
             Vertex vertex = interpolatedVertex(tri,
                                                w1, w2, w3,
@@ -431,11 +433,9 @@ struct TrianglePrimitiveRasterizer::Impl
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-TrianglePrimitiveRasterizer::TrianglePrimitiveRasterizer(
-        ColorFramebuffer& colorbuffer,
-        DepthFramebuffer& depthbuffer,
+TrianglePrimitiveRasterizer::TrianglePrimitiveRasterizer(Framebuffer &framebuffer,
         Rasterizer::NormalMode normalMode)
-    : PrimitiveRasterizer(colorbuffer, depthbuffer)
+    : PrimitiveRasterizer(framebuffer)
     , impl(std::make_shared<Impl>(normalMode, this))
 {}
 

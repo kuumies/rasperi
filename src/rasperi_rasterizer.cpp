@@ -23,8 +23,7 @@ struct Rasterizer::Impl
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
     Impl(int width, int height)
-        : colorFramebuffer(width, height, 4)
-        , depthFramebuffer(width, height, 1)
+        : framebuffer(width, height)
         , normalMode(NormalMode::Coarse)
     {
         viewMatrix = glm::translate(glm::dmat4(1.0), glm::dvec3(0, 0, 3.0));
@@ -39,8 +38,7 @@ struct Rasterizer::Impl
      * ------------------------------------------------------------ */
     void clear()
     {
-        colorFramebuffer.clear();
-        depthFramebuffer.set(std::numeric_limits<double>::max());
+        framebuffer.clear();
     }
 
     /* ------------------------------------------------------------ *
@@ -57,7 +55,7 @@ struct Rasterizer::Impl
      * ------------------------------------------------------------ */
     void drawFilledTriangleMesh(Mesh* mesh)
     {
-        TrianglePrimitiveRasterizer triRast(colorFramebuffer, depthFramebuffer, normalMode);
+        TrianglePrimitiveRasterizer triRast(framebuffer, normalMode);
         triRast.rasterize(*mesh, cameraMatrix, modelMatrix, normalMatrix, lightDir, cameraPos, material);
     }
 
@@ -108,7 +106,7 @@ struct Rasterizer::Impl
             lineMesh.indices.push_back(i1);
         }
 
-        LinePrimitiveRasterizer linRast(colorFramebuffer, depthFramebuffer);
+        LinePrimitiveRasterizer linRast(framebuffer);
         linRast.rasterize(lineMesh, cameraMatrix);
     }
 
@@ -116,12 +114,11 @@ struct Rasterizer::Impl
      * ------------------------------------------------------------ */
     void drawLineMesh(Mesh* mesh)
     {
-        LinePrimitiveRasterizer linRast(colorFramebuffer, depthFramebuffer);
+        LinePrimitiveRasterizer linRast(framebuffer);
         linRast.rasterize(*mesh, cameraMatrix);
     }
 
-    ColorFramebuffer colorFramebuffer;
-    DepthFramebuffer depthFramebuffer;
+    Framebuffer framebuffer;
     NormalMode normalMode;
     glm::dmat4 modelMatrix;
     glm::dmat4 viewMatrix;
@@ -193,14 +190,8 @@ void Rasterizer::drawLineMesh(Mesh* mesh)
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-ColorFramebuffer Rasterizer::colorFramebuffer() const
-{ return impl->colorFramebuffer; }
-
-/* ---------------------------------------------------------------- *
- * ---------------------------------------------------------------- */
-DepthFramebuffer Rasterizer::depthFramebuffer() const
-{ return impl->depthFramebuffer; }
-
+Framebuffer &Rasterizer::framebuffer() const
+{ return impl->framebuffer; }
 
 } // namespace rasperi
 } // namespace kuu

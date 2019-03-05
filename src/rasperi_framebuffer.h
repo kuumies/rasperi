@@ -5,9 +5,8 @@
  
 #pragma once
 
-#include <memory>
-#include <vector>
-#include <QtGui/QImage>
+#include <array>
+#include "rasperi_texture_2d.h"
 
 namespace kuu
 {
@@ -16,22 +15,15 @@ namespace rasperi
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-template<typename T>
 class Framebuffer
 {
 public:
-    using Data    = std::vector<T>;
-    using DataPtr = std::shared_ptr<Data>;
-
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
-    Framebuffer(int width, int height, int channels)
-        : width(width)
-        , height(height)
-        , channels(channels)
+    Framebuffer(int width, int height)
+        : colorTex(width, height)
+        , depthTex(width, height)
     {
-        const std::size_t size = std::size_t(width * height * channels);
-        data = std::make_shared<Data>(size);
         clear();
     }
 
@@ -39,62 +31,18 @@ public:
      * ------------------------------------------------------------ */
     void clear()
     {
-        memset(data.get()->data(), 0, size());
+        std::array<uchar, 4> colorPix = { 0, 0, 0, 0 };
+        colorTex.clear(colorPix);
+
+        std::array<double, 1> depthPix = { std::numeric_limits<double>::max() };
+        depthTex.clear(depthPix);
     }
 
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
-    void set(T value)
-    {
-        Data& d = *data.get();
-        for (int y = 0; y < height;   ++y)
-        for (int x = 0; x < width;    ++x)
-        for (int c = 0; c < channels; ++c)
-            d[y * width + x * channels + c] = value;
-    }
-
-    /* ------------------------------------------------------------ *
-     * ------------------------------------------------------------ */
-    void set(int x, int y, int c, T value)
-    {
-        Data& d = *data.get();
-        d[y * width * channels + x * channels + c] = value;
-    }
-
-    /* ------------------------------------------------------------ *
-     * ------------------------------------------------------------ */
-    T get(int x, int y, int c)
-    {
-        Data& d = *data.get();
-        return d[y * width * channels + x * channels + c];
-    }
-
-    /* ------------------------------------------------------------ *
-     * ------------------------------------------------------------ */
-    std::size_t size() const
-    { return std::size_t(width * height * channels); }
-
-    /* ------------------------------------------------------------ *
-     * ------------------------------------------------------------ */
-    QImage toQImage() const
-    {
-        if (channels != 4)
-            return QImage();
-
-        QImage out = QImage(data.get()->data(),
-                            width, height,
-                            QImage::Format_ARGB32).copy();
-        return out.rgbSwapped();
-    }
-
-    int width;
-    int height;
-    int channels;
-    DataPtr data;
+    Texture2D<uchar,  4> colorTex;
+    Texture2D<double, 1> depthTex;
 };
-
-using DepthFramebuffer = Framebuffer<double>;
-using ColorFramebuffer = Framebuffer<unsigned char>;
 
 } // namespace rasperi
 } // namespace kuu

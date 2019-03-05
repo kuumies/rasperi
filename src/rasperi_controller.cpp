@@ -255,8 +255,8 @@ struct Controller::Impl
                 rasterizer.drawEdgeLineTriangleMesh(model.mesh.get());
         }
 
-        ColorFramebuffer colorFramebuffer = rasterizer.colorFramebuffer();
-        image = colorFramebuffer.toQImage();
+        Framebuffer& framebuffer = rasterizer.framebuffer();
+        image = framebuffer.colorTex.toQImage();
         imageWidget.setImage(image);
 
         qDebug() << __FUNCTION__ << timer.elapsed() << "ms";
