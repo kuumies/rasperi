@@ -119,20 +119,20 @@ struct ModelImporter::Impl
 
         aiString path;
         if (material->GetTexture(textureType, 0, &path) != aiReturn_SUCCESS)
-        {
             return {};
-        }
-
 
         QString qpath = QString::fromLatin1(path.C_Str());
         qpath = dir.absoluteFilePath(qpath);
         QImage image(qpath);
         if (image.isNull())
         {
-            qDebug() << "NULL" << qpath;
+            qDebug() << __FUNCTION__
+                     << ": image file is not valid"
+                     << qpath;
+
             return QImage();
         }
-        qDebug() << "image ok" << qpath;
+
         return image;
     }
 

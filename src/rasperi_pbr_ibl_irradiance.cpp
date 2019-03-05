@@ -307,9 +307,6 @@ struct PbrIblIrradiance::Impl
                                     texColors[1] / 255.0,
                                     texColors[2] / 255.0);
 
-                // Amplify the sample to fake HDR
-                texColor *= 2.0;
-
                 irradiance += texColor * cos(theta) * sin(theta);
                 nrSamples++;
             }

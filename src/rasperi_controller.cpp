@@ -502,6 +502,7 @@ void Controller::viewPbrSphereScene()
     dlg.setLabelText("Loading textures... please wait...");
     dlg.setMinimumWidth(400);
     dlg.setRange(0, 0);
+    dlg.setCancelButton(nullptr);
     dlg.show();
     QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
 
