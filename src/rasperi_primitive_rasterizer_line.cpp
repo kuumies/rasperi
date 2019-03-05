@@ -47,7 +47,7 @@ struct LinePrimitiveRasterizer::Impl
         for (double r = 0.0; r <= a; r += d)
         {
             double t = r / a;
-            glm::ivec2 p = vpP1 + dir * r;
+            glm::dvec2 p = vpP1 + dir * r;
             glm::dvec4 c = glm::mix(v1.color, v2.color, t);
 
             // Depth test.
@@ -58,7 +58,7 @@ struct LinePrimitiveRasterizer::Impl
                 continue;
 
             std::array<double, 1> dpix = { z };
-            self->framebuffer.depthTex.setPixel(p.x, p.y, dpix);
+            self->framebuffer.depthTex.setPixel(int(p.x), int(p.y), dpix);
             self->setRgba(p.x, p.y, c);
         }
     }

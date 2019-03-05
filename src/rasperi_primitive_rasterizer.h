@@ -29,7 +29,7 @@ public:
 
     glm::dvec3 project(const glm::dmat4& m, const glm::dvec3& p);
     glm::dvec3 transform(const glm::dmat4&m, const glm::dvec3& p);
-    glm::ivec2 viewportTransform(const glm::dvec3& p);
+    glm::dvec2 viewportTransform(const glm::dvec3& p);
     void setRgba(int x, int y, glm::dvec4 c);
 
 protected:

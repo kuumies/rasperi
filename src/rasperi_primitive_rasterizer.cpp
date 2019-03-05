@@ -47,17 +47,17 @@ glm::dvec3 PrimitiveRasterizer::transform(const glm::dmat4& m,
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-glm::ivec2 PrimitiveRasterizer::viewportTransform(const glm::dvec3& p)
+glm::dvec2 PrimitiveRasterizer::viewportTransform(const glm::dvec3& p)
 {
-    const glm::ivec2 vp(framebuffer.colorTex.width(), framebuffer.colorTex.height());
-    const glm::dvec2 halfViewport = glm::dvec2(vp) * 0.5;
+    const glm::dvec2 vp(framebuffer.colorTex.width(), framebuffer.colorTex.height());
+    const glm::dvec2 halfViewport = vp * 0.5;
 
-    glm::ivec2 out;
-    out.x =        int(std::floor((p.x + 1.0) * halfViewport.x));
-    out.y = vp.y - int(std::floor((p.y + 1.0) * halfViewport.y));
+    glm::dvec2 out;
+    out.x =        std::floor((p.x + 1.0) * halfViewport.x);
+    out.y = vp.y - std::floor((p.y + 1.0) * halfViewport.y);
 
-    glm::ivec2 vpMin = glm::ivec2(0, 0);
-    glm::ivec2 vpMax = glm::ivec2(vp.x - 1, vp.y- 1);
+    glm::dvec2 vpMin = glm::dvec2(0, 0);
+    glm::dvec2 vpMax = glm::dvec2(vp.x - 1, vp.y- 1);
     return glm::clamp(out, vpMin, vpMax);
 }
 

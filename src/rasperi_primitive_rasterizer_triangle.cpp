@@ -25,12 +25,13 @@ struct TrianglePrimitiveRasterizer::Impl
     public:
         BoundingBox()
         {
-            min.x =  std::numeric_limits<int>::max();
-            min.y =  std::numeric_limits<int>::max();
-            max.x = -std::numeric_limits<int>::max();
-            max.y = -std::numeric_limits<int>::max();
+            min.x =  std::numeric_limits<double>::max();
+            min.y =  std::numeric_limits<double>::max();
+            max.x = -std::numeric_limits<double>::max();
+            max.y = -std::numeric_limits<double>::max();
         }
-        void update(const glm::ivec2& p)
+
+        void update(const glm::dvec2& p)
         {
             if (p.x < min.x) min.x = p.x;
             if (p.y < min.y) min.y = p.y;
@@ -38,8 +39,8 @@ struct TrianglePrimitiveRasterizer::Impl
             if (p.y > max.y) max.y = p.y;
         }
 
-        glm::ivec2 min;
-        glm::ivec2 max;
+        glm::dvec2 min;
+        glm::dvec2 max;
     };
 
     /* ------------------------------------------------------------ *
@@ -70,9 +71,9 @@ struct TrianglePrimitiveRasterizer::Impl
         glm::dvec3 p3 = self->project(cameraMatrix, tri.p3.position);
 
         // Viewport transform
-        glm::ivec2 vpP1 = self->viewportTransform(p1);
-        glm::ivec2 vpP2 = self->viewportTransform(p2);
-        glm::ivec2 vpP3 = self->viewportTransform(p3);
+        glm::dvec2 vpP1 = self->viewportTransform(p1);
+        glm::dvec2 vpP2 = self->viewportTransform(p2);
+        glm::dvec2 vpP3 = self->viewportTransform(p3);
 
         // Shade the triangle area on the viewport
         BoundingBox bb;
@@ -80,11 +81,20 @@ struct TrianglePrimitiveRasterizer::Impl
         bb.update(vpP2);
         bb.update(vpP3);
 
+        int w = self->framebuffer.colorTex.width();
+        int h = self->framebuffer.colorTex.height();
+        int xmin = std::max(0, std::min(w - 1, int(std::floor(bb.min.x))));
+        int ymin = std::max(0, std::min(h - 1, int(std::floor(bb.min.y))));
+        int xmax = std::max(0, std::min(w - 1, int(std::floor(bb.max.x))));
+        int ymax = std::max(0, std::min(h - 1, int(std::floor(bb.max.y))));
+
         #pragma omp parallel for
-        for (int y = bb.min.y; y <= bb.max.y; ++y)
-        for (int x = bb.min.x; x <= bb.max.x; ++x)
+        //for (int y = bb.min.y; y <= bb.max.y; ++y)
+        //for (int x = bb.min.x; x <= bb.max.x; ++x)
+        for (int y = ymin; y <= ymax; ++y)
+        for (int x = xmin; x <= xmax; ++x)
         {
-            glm::ivec2 p(x, y);
+            glm::vec2 p(x + 0.5, y + 0.5);
 
             // Barycentric weights
             double w1 = edgeFunction(vpP2, vpP3, p);
@@ -94,9 +104,9 @@ struct TrianglePrimitiveRasterizer::Impl
                 continue;
 
             // Top-left edge rule
-            glm::ivec2 edge1 = vpP2 - vpP3;
-            glm::ivec2 edge2 = vpP3 - vpP1;
-            glm::ivec2 edge3 = vpP1 - vpP2;
+            glm::dvec2 edge1 = vpP2 - vpP3;
+            glm::dvec2 edge2 = vpP3 - vpP1;
+            glm::dvec2 edge3 = vpP1 - vpP2;
             bool overlaps = true;
             overlaps &= (w1 == 0.0 ? ((edge1.y == 0.0 && edge1.x < 0.0) ||  edge1.y < 0.0) : (w1 > 0.0));
             overlaps &= (w2 == 0.0 ? ((edge2.y == 0.0 && edge2.x < 0.0) ||  edge2.y < 0.0) : (w2 > 0.0));
@@ -168,14 +178,11 @@ struct TrianglePrimitiveRasterizer::Impl
 
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
-    double edgeFunction(const glm::ivec2& a,
-                        const glm::ivec2& b,
-                        const glm::ivec2& c)
+    double edgeFunction(const glm::dvec2& a,
+                        const glm::dvec2& b,
+                        const glm::dvec2& c)
     {
-        const glm::dvec2 aa = a;
-        const glm::dvec2 bb = b;
-        const glm::dvec2 cc = c;
-        return ((cc.x - aa.x) * (bb.y - aa.y) - (cc.y - aa.y) * (bb.x - aa.x));
+        return ((c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x));
     }
 
     /* ------------------------------------------------------------ *
@@ -420,7 +427,7 @@ struct TrianglePrimitiveRasterizer::Impl
 
         //double exposure = 0.1;
         //color = 1.0 - exp(-exposure * color);
-        glm::dvec3 color = radiance + irradiance;;
+        glm::dvec3 color = radiance + irradiance;
         color = color / (color + glm::dvec3(1.0));
         color = pow(color, glm::dvec3(1.0/2.2));
 
