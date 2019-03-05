@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The definition of types of kuu::rasperi::ModelImporter class.
+   The definition of kuu::rasperi::ModelImporter class.
  * ---------------------------------------------------------------- */
  
 #pragma once

@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The definition of types of kuu::rasperi::CubeCamera class.
+   The definition of kuu::rasperi::CubeCamera class.
  * ---------------------------------------------------------------- */
  
 #pragma once

@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The definition of kuu::rasperi::Transform struct.
+   The definition of kuu::rasperi::Transform class.
  * ---------------------------------------------------------------- */
  
 #pragma once
@@ -13,8 +13,11 @@ namespace kuu
 namespace rasperi
 {
 
-struct Transform
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+class Transform
 {
+public:
     glm::dmat4 matrix() const;
 
     glm::dvec3 position;

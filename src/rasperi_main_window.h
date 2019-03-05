@@ -2,6 +2,7 @@
    Antti Jumpponen <kuumies@gmail.com>
    Definition of kuu::rasperi::MainWindow class.
  * ---------------------------------------------------------------- */
+
 #pragma once
 
 #include <QtWidgets/QMainWindow>

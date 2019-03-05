@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The implementation of types of kuu::rasperi::ModelImporter class.
+   The implementation of kuu::rasperi::ModelImporter class.
  * ---------------------------------------------------------------- */
  
 #include "rasperi_model_importer.h"

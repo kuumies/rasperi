@@ -22,6 +22,9 @@ class AboutDialog : public QDialog
 public:
     explicit AboutDialog(QWidget* parent = nullptr);
 
+private slots:
+    void on_closeButton_clicked();
+
 private:
     struct Impl;
     std::shared_ptr<Impl> impl;

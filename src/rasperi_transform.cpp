@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The implementation of kuu::rasperi::Transform struct.
+   The implementation of kuu::rasperi::Transform class.
  * ---------------------------------------------------------------- */
  
 #include "rasperi_transform.h"

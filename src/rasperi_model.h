@@ -16,8 +16,11 @@ namespace kuu
 namespace rasperi
 {
 
-struct Model
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+class Model
 {
+public:
     std::string name;
     std::shared_ptr<Material> material;
     std::shared_ptr<Mesh> mesh;

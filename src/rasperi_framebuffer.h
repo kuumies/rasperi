@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The definition of types of kuu::rasperi::Framebuffer class.
+   The definition of kuu::rasperi::Framebuffer class.
  * ---------------------------------------------------------------- */
  
 #pragma once

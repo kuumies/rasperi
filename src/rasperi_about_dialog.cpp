@@ -27,5 +27,12 @@ AboutDialog::AboutDialog(QWidget *parent)
     impl->ui.setupUi(this);
 }
 
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+void AboutDialog::on_closeButton_clicked()
+{
+    accept();
+}
+
 } // namespace rasperi
 } // namespace kuu

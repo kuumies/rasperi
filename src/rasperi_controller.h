@@ -17,7 +17,7 @@ namespace rasperi
 class Camera;
 class CameraController;
 class MainWindow;
-struct Model;
+class Model;
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */

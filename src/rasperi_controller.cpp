@@ -4,7 +4,6 @@
  * ---------------------------------------------------------------- */
 
 #include "rasperi_controller.h"
-#include <glm/gtx/string_cast.hpp>
 #include <QtWidgets/QApplication>
 #include <QtCore/QDebug>
 #include <QtCore/QTime>
@@ -17,9 +16,6 @@
 #include "rasperi_pbr_ibl_prefilter.h"
 #include "rasperi_pbr_ibl_brdf_integration.h"
 #include "rasperi_rasterizer.h"
-#include "rasperi_texture_2d.h"
-#include "rasperi_texture_cube.h"
-#include "rasperi_texture_mipmaps.h"
 
 namespace kuu
 {

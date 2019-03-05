@@ -10,7 +10,7 @@
 #include <QtGui/QImage>
 #include <QtGui/QPainter>
 #include "rasperi_texture_2d.h"
-#include "rasperi_texture_mipmaps.h"
+#include "rasperi_texture_mipmap_generator.h"
 
 namespace kuu
 {

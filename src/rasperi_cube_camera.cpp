@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The implementation of types of kuu::rasperi::CubeCamera class.
+   The implementation of kuu::rasperi::CubeCamera class.
  * ---------------------------------------------------------------- */
  
 #include "rasperi_cube_camera.h"

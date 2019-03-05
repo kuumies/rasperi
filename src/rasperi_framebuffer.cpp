@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The implementation of types of kuu::rasperi::Framebuffer class.
+   The implementation of kuu::rasperi::Framebuffer class.
  * ---------------------------------------------------------------- */
  
 #include "rasperi_framebuffer.h"

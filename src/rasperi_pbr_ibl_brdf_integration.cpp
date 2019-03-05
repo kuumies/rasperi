@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The implementation of types of kuu::rasperi::PbrIblBrdfIntegration class.
+   The implementation of kuu::rasperi::PbrIblBrdfIntegration class.
  * ---------------------------------------------------------------- */
  
 #include "rasperi_pbr_ibl_brdf_integration.h"
