@@ -4,7 +4,9 @@
  * ---------------------------------------------------------------- */
 
 #include "rasperi_controller.h"
+#include <future>
 #include <QtWidgets/QApplication>
+#include <QtWidgets/QProgressDialog>
 #include <QtCore/QDebug>
 #include <QtCore/QTime>
 #include "rasperi_camera.h"
@@ -372,21 +374,164 @@ void Controller::showUi()
  * ---------------------------------------------------------------- */
 void Controller::viewPbrSphereScene()
 {
-    Model m1;
-    m1.mesh = std::make_shared<Sphere>(1.0, 32, 16);
-    m1.material = std::make_shared<Material>();
-    m1.material->model = Material::Model::Pbr;
-    m1.transform = std::make_shared<Transform>();
-    m1.transform->position.x = -1;
+    const QDir rootDir = QDir::current().absoluteFilePath("pbr_textures");
 
-    Model m2;
-    m2.mesh = std::make_shared<Sphere>(1.0, 32, 16);
-    m2.material = std::make_shared<Material>();
-    m2.material->model = Material::Model::Pbr;
-    m2.transform = std::make_shared<Transform>();
-    m2.transform->position.x = 1;
+    struct PbrSphere
+    {
+        QDir dir;
+        QString albedo;
+        QString roughness;
+        QString metal;
+        QString ao;
+        QString normal;
+        glm::dvec3 position;
+    };
+    std::array<PbrSphere, 6> spheres;
+    spheres[0] =
+    {
+        rootDir.absoluteFilePath("bamboo-wood-semigloss"),
+        "bamboo-wood-semigloss-albedo.png",
+        "bamboo-wood-semigloss-roughness.png",
+        "bamboo-wood-semigloss-metal.png",
+        "bamboo-wood-semigloss-ao.png",
+        "bamboo-wood-semigloss-normal.png",
+        glm::dvec3(-1.0, 0.5, 0.0)
+    };
+    spheres[1] =
+    {
+        rootDir.absoluteFilePath("blocksrough"),
+        "blocksrough_basecolor.png",
+        "blocksrough_roughness.png",
+        "blocksrough_metallic.png",
+        "blocksrough_ambientocclusion.png",
+        "blocksrough_normal.png",
+        glm::dvec3(0.0, 0.5, 0.0)
+    };
+    spheres[2] =
+    {
+        rootDir.absoluteFilePath("rustediron1-alt2"),
+        "rustediron2_basecolor.png",
+        "rustediron2_roughness.png",
+        "rustediron2_metallic.png",
+        "",
+        "rustediron2_normal.png",
+        glm::dvec3(1.0, 0.5, 0.0)
+    };
+    spheres[3] =
+    {
+        rootDir.absoluteFilePath("cratered-rock-albedo.png"),
+        "cratered-rock-albedo.png",
+        "cratered-rock-roughness.png",
+        "cratered-rock-metalness.png",
+        "cratered-rock-ao.png",
+        "cratered-rock-normal.png",
+        glm::dvec3(1.0, -0.5, 0.0)
+    };
+    spheres[4] =
+    {
+        rootDir.absoluteFilePath("oakfloor_fb1"),
+        "oakfloor_basecolor.png",
+        "oakfloor_roughness.png",
+        "",
+        "oakfloor_AO.png",
+        "oakfloor_normal.png",
+        glm::dvec3(0.0, -0.5, 0.0)
+    };
+    spheres[5] =
+    {
+        rootDir.absoluteFilePath("rustediron-streaks"),
+        "rustediron-streaks_basecolor.png",
+        "rustediron-streaks_roughness.png",
+        "rustediron-streaks_metallic.png",
+        "",
+        "rustediron-streaks_normal.png",
+        glm::dvec3(-1.0, -0.5, 0.0)
+    };
 
-    importModels( { m1, m2 }, false);
+    QProgressDialog dlg(&impl->mainWindow);
+    dlg.setWindowTitle("Loading textures");
+    dlg.setLabelText("Loading textures... please wait...");
+    dlg.setMinimumWidth(400);
+    dlg.setRange(0, 0);
+    dlg.show();
+    QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+
+    std::future<std::map<QString, QImage>> loadFuture =
+        std::async(std::launch::async,
+                   [&](const std::array<PbrSphere, 6>& spheres)
+    {
+        std::map<QString, QImage> out;
+        for (const PbrSphere& sphere : spheres)
+        {
+            QImage albedo(sphere.dir.absoluteFilePath(sphere.albedo));
+            if (albedo.format() != QImage::Format_RGB32)
+                albedo = albedo.convertToFormat(QImage::Format_RGB32);
+            out[sphere.albedo] = albedo.rgbSwapped();
+
+            QImage roughness(sphere.dir.absoluteFilePath(sphere.roughness));
+            if (roughness.format() != QImage::Format_Grayscale8)
+                roughness = roughness.convertToFormat(QImage::Format_Grayscale8);
+            out[sphere.roughness] = roughness;
+
+            QImage metalness(sphere.dir.absoluteFilePath(sphere.metal));
+            if (metalness.format() != QImage::Format_Grayscale8)
+                metalness = metalness.convertToFormat(QImage::Format_Grayscale8);
+            out[sphere.metal] = metalness;
+
+            QImage ao(sphere.dir.absoluteFilePath(sphere.ao));
+            if (ao.format() != QImage::Format_Grayscale8)
+                ao = metalness.convertToFormat(QImage::Format_Grayscale8);
+            out[sphere.ao] = ao;
+
+            QImage normal(sphere.dir.absoluteFilePath(sphere.normal));
+            if (normal.format() != QImage::Format_RGB32)
+                normal = normal.convertToFormat(QImage::Format_RGB32);
+            out[sphere.normal] = normal;
+        }
+        return out;
+    },  spheres);
+
+    auto status = loadFuture.wait_for(std::chrono::milliseconds(0));
+    while (status != std::future_status::ready)
+    {
+        QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+        status = loadFuture.wait_for(std::chrono::milliseconds(10));
+    }
+
+    std::map<QString, QImage> images;
+    try
+    {
+        images = loadFuture.get();
+    }
+    catch(const std::exception& ex)
+    {
+        std::cerr << __FUNCTION__
+                  << ": failed to load models "
+                  << ex.what()
+                  << std::endl;
+    }
+
+    dlg.hide();
+    dlg.reset();
+
+    std::vector<Model> models;
+    for (const PbrSphere& sphere : spheres)
+    {
+        Model m;
+        m.mesh = std::make_shared<Sphere>(0.5, 32, 16);
+        m.material = std::make_shared<Material>();
+        m.material->model = Material::Model::Pbr;
+        m.material->pbr.albedoSampler.setMap(images[sphere.albedo]);
+        m.material->pbr.roughnessSampler.setMap(images[sphere.roughness]);
+        m.material->pbr.metalnessSampler.setMap(images[sphere.metal]);
+        m.material->pbr.aoSampler.setMap(images[sphere.ao]);
+        //m.material->normalSampler.setMap(images[sphere.normal]);
+        m.transform = std::make_shared<Transform>();
+        m.transform->position = sphere.position;
+        models.push_back(m);
+    }
+
+    importModels(models, false);
 }
 
 /* ---------------------------------------------------------------- *
