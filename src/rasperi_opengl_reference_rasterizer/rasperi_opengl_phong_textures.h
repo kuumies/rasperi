@@ -1,38 +1,28 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   Definition of kuu::rasperi::ImportPhongModelsDialog class.
+   The definition of kuu::rasperi::OpenGLPhongTextures class.
  * ---------------------------------------------------------------- */
-
+ 
 #pragma once
 
 #include <memory>
-#include <QtWidgets/QDialog>
+#include <vector>
+#include <glad/glad.h>
+#include "rasperi_lib/rasperi_material.h"
 
 namespace kuu
 {
 namespace rasperi
 {
 
-class Model;
-
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-class ImportPhongModelsDialog : public QDialog
+class OpenGLPhongTexture
 {
-    Q_OBJECT
-
 public:
-    explicit ImportPhongModelsDialog(QWidget* parent = nullptr);
+    OpenGLPhongTexture(const Material& material);
 
-    std::vector<Model> models() const;
-
-    void load(const QString& filepath);
-
-private slots:
-    void on_pushButtonBrowse_clicked();
-    void on_comboBoxModels_currentIndexChanged(int index);
-    void on_buttonBox_accepted();
-    void on_buttonBox_rejected();
+    void bind();
 
 private:
     struct Impl;

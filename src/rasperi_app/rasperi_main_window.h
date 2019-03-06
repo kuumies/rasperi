@@ -32,7 +32,10 @@ public:
     ImageWidget& imageWidget();
     OpenGLWidget& openglWidget();
 
-private slots:
+    void setReferenceEnabled(bool enabled);
+    bool isReferenceEnabled() const;
+
+public slots:
     void viewPbrSphereScene();
     void showImportPhongModelsDialog();
     void showImportPbrModelsDialog();

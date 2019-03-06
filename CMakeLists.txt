@@ -76,6 +76,7 @@ file(GLOB_RECURSE H_SOURCES       src/*.h)
 file(GLOB_RECURSE CPP_SOURCES     src/*.cpp)
 file(GLOB_RECURSE UI_SOURCES      src/*.ui)
 file(GLOB_RECURSE QRC_SOURCES     resource/*.qrc)
+file(GLOB_RECURSE SHADER_SOURCES  src/*.vsh src/*.fsh)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 
@@ -85,6 +86,7 @@ add_executable(
     ${CPP_SOURCES}
     ${UI_SOURCES}
     ${QRC_SOURCES}
+    ${SHADER_SOURCES}
 )
 
 target_link_libraries(
@@ -98,3 +100,4 @@ target_link_libraries(
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
 INSTALL(DIRECTORY resource/models       DESTINATION bin)
 INSTALL(DIRECTORY resource/pbr_textures DESTINATION bin)
+INSTALL(FILES ${SHADER_SOURCES}         DESTINATION bin/shaders)

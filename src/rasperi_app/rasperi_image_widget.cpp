@@ -83,7 +83,9 @@ void ImageWidget::paintEvent(QPaintEvent* e)
     QWidget::paintEvent(e);
 
     QPainter p(this);
-    p.drawImage(0, 0, impl->bgImage);
+    //p.drawImage(0, 0, impl->bgImage);
+    p.setBrush(QColor::fromRgbF(0.2, 0.2, 0.2, 1.0));
+    p.drawRect(rect());
     p.setCompositionMode(QPainter::CompositionMode_SourceOver);
     p.drawImage(0, 0, impl->image);
     p.setPen(QPen(Qt::gray, 1, Qt::DashLine));

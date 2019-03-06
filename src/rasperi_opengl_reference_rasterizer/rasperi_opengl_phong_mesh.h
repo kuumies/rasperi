@@ -1,38 +1,28 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   Definition of kuu::rasperi::ImportPhongModelsDialog class.
+   The definition of kuu::rasperi::OpenGLPhongMesh class.
  * ---------------------------------------------------------------- */
-
+ 
 #pragma once
 
 #include <memory>
-#include <QtWidgets/QDialog>
+#include <vector>
+#include <glad/glad.h>
+#include "rasperi_lib/rasperi_mesh.h"
 
 namespace kuu
 {
 namespace rasperi
 {
 
-class Model;
-
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-class ImportPhongModelsDialog : public QDialog
+class OpenGLPhongMesh
 {
-    Q_OBJECT
-
 public:
-    explicit ImportPhongModelsDialog(QWidget* parent = nullptr);
+    OpenGLPhongMesh(const Mesh& mesh);
 
-    std::vector<Model> models() const;
-
-    void load(const QString& filepath);
-
-private slots:
-    void on_pushButtonBrowse_clicked();
-    void on_comboBoxModels_currentIndexChanged(int index);
-    void on_buttonBox_accepted();
-    void on_buttonBox_rejected();
+    void draw();
 
 private:
     struct Impl;

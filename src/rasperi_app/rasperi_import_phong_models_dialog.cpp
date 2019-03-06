@@ -6,6 +6,7 @@
 #include "rasperi_import_phong_models_dialog.h"
 #include "ui_rasperi_import_phong_models_dialog.h"
 #include <future>
+#include <QtCore/QDebug>
 #include <QtWidgets/QFileDialog>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QProgressDialog>
@@ -45,14 +46,10 @@ std::vector<Model> ImportPhongModelsDialog::models() const
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-void ImportPhongModelsDialog::on_pushButtonBrowse_clicked()
+
+void ImportPhongModelsDialog::load(const QString &filepath)
 {
-    const QString filepath =
-        QFileDialog::getOpenFileName(this, "Select Model",
-                                     impl->dir.absolutePath(),
-                                     "Models (*.obj *.fbx)");
-    if (filepath.isEmpty())
-        return;
+    qDebug() << filepath;
 
     QProgressDialog dlg(this);
     dlg.setWindowTitle("Importing models");
@@ -126,6 +123,20 @@ void ImportPhongModelsDialog::on_pushButtonBrowse_clicked()
     impl->ui.comboBoxModels->setCurrentIndex(0);
     impl->ui.comboBoxModels->blockSignals(false);
     on_comboBoxModels_currentIndexChanged(0);
+}
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+void ImportPhongModelsDialog::on_pushButtonBrowse_clicked()
+{
+    const QString filepath =
+        QFileDialog::getOpenFileName(this, "Select Model",
+                                     impl->dir.absolutePath(),
+                                     "Models (*.obj *.fbx)");
+    if (filepath.isEmpty())
+        return;
+
+    load(filepath);
 }
 
 /* ---------------------------------------------------------------- *

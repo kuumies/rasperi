@@ -104,7 +104,7 @@ public:
             switch(C)
             {
                 case 1: return QImage(data, d->width, d->height, QImage::Format_Grayscale8);
-                case 4: return QImage(data, d->width, d->height, QImage::Format_ARGB32);
+                case 4: return QImage(data, d->width, d->height, QImage::Format_ARGB32).rgbSwapped();
                 default: break;
             }
 

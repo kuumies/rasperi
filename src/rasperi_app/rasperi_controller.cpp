@@ -16,9 +16,11 @@
 #include "rasperi_lib/rasperi_pbr_ibl_prefilter.h"
 #include "rasperi_lib/rasperi_pbr_ibl_brdf_integration.h"
 #include "rasperi_lib/rasperi_rasterizer.h"
+#include "rasperi_opengl_reference_rasterizer/rasperi_opengl_reference_rasterizer.h"
 #include "rasperi_camera_controller.h"
 #include "rasperi_image_widget.h"
 #include "rasperi_main_window.h"
+#include "rasperi_opengl_widget.h"
 
 namespace kuu
 {
@@ -310,6 +312,18 @@ struct Controller::Impl
         mainWindow.imageWidget().setImage(image);
 
         qDebug() << __FUNCTION__ << timer.elapsed() << "ms";
+
+        if (mainWindow.isReferenceEnabled())
+        {
+            OpenGLReferenceRasterizer::Scene scene;
+            scene.view       = camera->viewMatrix();
+            scene.projection = camera->projectionMatrix();
+            scene.models     = models;
+
+            OpenGLWidget& openglWidget = mainWindow.openglWidget();
+            openglWidget.setScene(scene);
+            openglWidget.update();
+        }
     }
 
     /* ------------------------------------------------------------- *
@@ -415,6 +429,8 @@ void Controller::showUi()
     impl->mainWindow.showMaximized();
     QApplication::processEvents();
     impl->mainWindow.showLandingDialog();
+    //impl->mainWindow.showImportPhongModelsDialog();
+    //impl->mainWindow.setReferenceEnabled(true);
 }
 
 /* ---------------------------------------------------------------- *

@@ -8,7 +8,6 @@
 #include <QtGui/QPainter>
 #include "rasperi_camera_controller.h"
 #include "rasperi_controller.h"
-#include "rasperi_opengl_reference_rasterizer/rasperi_opengl_reference_rasterizer.h"
 
 namespace kuu
 {
@@ -20,11 +19,11 @@ namespace rasperi
 struct OpenGLWidget::Impl
 {
     Impl()
-        : rasterizer(512, 512)
     {}
 
     Controller* controller;
-    OpenGLReferenceRasterizer rasterizer;
+    OpenGLReferenceRasterizer* rasterizer = nullptr;
+    OpenGLReferenceRasterizer::Scene scene;
 };
 
 /* ---------------------------------------------------------------- *
@@ -39,8 +38,8 @@ OpenGLWidget::OpenGLWidget(Controller* controller, QWidget* parent)
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-OpenGLReferenceRasterizer& OpenGLWidget::rasterizer()
-{ return impl->rasterizer; }
+void OpenGLWidget::setScene(const OpenGLReferenceRasterizer::Scene& scene)
+{ impl->scene = scene; }
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
@@ -48,20 +47,40 @@ void OpenGLWidget::initializeGL()
 {
     if (gladLoadGL() == 0)
         throw std::runtime_error("Failed to initialize OpenGL 3.3");
+    impl->rasterizer = new OpenGLReferenceRasterizer();
 }
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
 void OpenGLWidget::resizeGL(int w, int h)
 {
-    impl->rasterizer = OpenGLReferenceRasterizer(w, h);
+    delete impl->rasterizer;
+    impl->rasterizer = new OpenGLReferenceRasterizer();
 }
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
 void OpenGLWidget::paintGL()
 {
-    impl->rasterizer.run(defaultFramebufferObject());
+//    impl->rasterizer.clear();
+//    impl->rasterizer.setNormalMode(OpenGLReferenceRasterizer::NormalMode::Smooth);
+//    impl->rasterizer.setViewMatrix(impl->scene.view);
+//    impl->rasterizer.setProjectionMatrix(impl->scene.projection);
+//    for (Model& model : impl->scene.models)
+//    {
+//        if (model.transform)
+//            impl->rasterizer.setModelMatrix(model.transform->matrix());
+//        if (model.material)
+//            impl->rasterizer.setMaterial(*model.material);
+//        if (filled)
+//            impl->rasterizer.drawFilledTriangleMesh(model.mesh.get());
+//        else
+//            impl->rasterizer.drawEdgeLineTriangleMesh(model.mesh.get());
+//    }
+    impl->scene.viewport.z = width();
+    impl->scene.viewport.w = height();
+    impl->rasterizer->run(defaultFramebufferObject(),
+                          impl->scene);
 }
 
 /* ---------------------------------------------------------------- *

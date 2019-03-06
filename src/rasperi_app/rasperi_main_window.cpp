@@ -95,6 +95,16 @@ OpenGLWidget& MainWindow::openglWidget()
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
+void MainWindow::setReferenceEnabled(bool enabled)
+{ impl->ui.actionOpenGLReference->setChecked(enabled); }
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+bool MainWindow::isReferenceEnabled() const
+{ return impl->ui.actionOpenGLReference->isChecked(); }
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
 void MainWindow::viewPbrSphereScene()
 {
     impl->controller->viewPbrSphereScene();
@@ -105,6 +115,10 @@ void MainWindow::viewPbrSphereScene()
 void MainWindow::showImportPhongModelsDialog()
 {
     ImportPhongModelsDialog dlg(this);
+
+    //dlg.load("C:/Users/Antti Jumpponen/Documents/build-rasperi-VS2017-Release with Debug Information/install/bin/models/phong/bsa_bantam/BSA_BantamD1_OBJ.obj");
+    //impl->controller->importModels(dlg.models());
+
     if (dlg.exec() == QDialog::Accepted)
         impl->controller->importModels(dlg.models());
 }

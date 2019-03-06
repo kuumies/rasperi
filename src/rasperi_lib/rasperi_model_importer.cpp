@@ -158,6 +158,7 @@ struct ModelImporter::Impl
 
         out->phong.ambientSampler.setMap(loadTexture(material, aiTextureType_AMBIENT, dir));
         out->phong.diffuseSampler.setMap(loadTexture(material, aiTextureType_DIFFUSE, dir));
+        out->phong.diffuseSampler.setLinearizeGamma(true);
         out->phong.specularSampler.setMap(loadTexture(material, aiTextureType_SPECULAR, dir));
         out->phong.specularPowerSampler.setMap(loadTexture(material, aiTextureType_SHININESS, dir));
         out->normalSampler.setMap(loadTexture(material, aiTextureType_HEIGHT, dir)); // Note "typo", it really needs to be aiTextureType_HEIGHT for OBJs

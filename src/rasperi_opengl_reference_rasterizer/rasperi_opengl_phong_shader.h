@@ -1,15 +1,13 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The definition of kuu::rasperi::OpenGLReferenceRasterizer class.
+   The definition of kuu::rasperi::OpenGLPhongShader class.
  * ---------------------------------------------------------------- */
  
 #pragma once
 
 #include <memory>
-#include <vector>
 #include <glm/mat4x4.hpp>
 #include <glad/glad.h>
-#include "rasperi_lib/rasperi_model.h"
 
 namespace kuu
 {
@@ -18,22 +16,27 @@ namespace rasperi
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-class OpenGLReferenceRasterizer
+class OpenGLPhongShader
 {
 public:
-    struct Scene
-    {
-        glm::ivec4 viewport;
-        glm::vec3 lightDirection;
-        glm::vec3 cameraPosition;
-        glm::dmat4 view;
-        glm::dmat4 projection;
-        std::vector<Model> models;
-    };
+    OpenGLPhongShader();
 
-    OpenGLReferenceRasterizer();
+    void use();
 
-    void run(GLuint fbo, const Scene& scene);
+    glm::vec3 cameraPosition;
+    glm::vec3 lightDirection;
+    glm::mat4 modelMatrix;
+    glm::mat4 viewMatrix;
+    glm::mat4 projectionMatrix;
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+    float specularPower;
+    bool useAmbientSampler;
+    bool useDiffuseSampler;
+    bool useSpecularSampler;
+    bool useSpecularPowerSampler;
+    bool useNormalSampler;
 
 private:
     struct Impl;

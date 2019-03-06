@@ -4,10 +4,14 @@
  * ---------------------------------------------------------------- */
  
 #include "rasperi_opengl_reference_rasterizer.h"
+#include <map>
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include "rasperi_lib/rasperi_material.h"
 #include "rasperi_lib/rasperi_mesh.h"
+#include "rasperi_opengl_phong_mesh.h"
+#include "rasperi_opengl_phong_shader.h"
+#include "rasperi_opengl_phong_textures.h"
 
 namespace kuu
 {
@@ -16,152 +20,98 @@ namespace rasperi
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-class OpenGLFramebuffer
-{
-public:
-    OpenGLFramebuffer(int width, int height)
-        : width(width)
-        , height(height)
-    {}
-
-    int width;
-    int height;
-};
-
-/* ---------------------------------------------------------------- *
- * ---------------------------------------------------------------- */
 struct OpenGLReferenceRasterizer::Impl
 {
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
-    Impl(int width, int height)
-        : framebuffer(width, height)
-        , normalMode(NormalMode::Coarse)
+    Impl()
+        : phongShader(new OpenGLPhongShader())
+    {}
+
+    ~Impl()
     {
-        viewMatrix = glm::translate(glm::dmat4(1.0), glm::dvec3(0, 0, 3.0));
-        projectionMatrix = glm::perspective(M_PI * 0.25, width / double(height), 0.1, 150.0);
-        lightDir = glm::dvec3(0, 0, -1);
-        material.phong.diffuse = glm::dvec3(1.0);
-        material.phong.diffuseFromVertex = false;
-        updateMatrices();
+        delete phongShader;
+        for (auto& meshes : phongMeshes)
+            delete meshes.second;
+        for (auto& texture : phongTextures)
+            delete texture.second;
     }
 
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
-    void clear()
+    void run(GLuint fbo, const Scene& scene)
     {
-        //framebuffer.clear();
+        const glm::dmat4 viewInvMatrix = glm::inverse(scene.view);
+        const glm::dvec3 cameraPos     = glm::dvec3(viewInvMatrix * glm::dvec4(0.0, 0.0, 0.0, 1.0));
+        const glm::dvec3 lightDir      = glm::dvec3(0, 0, -1);
+
+        glEnable(GL_DEPTH_TEST);
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        glViewport(0, 0, scene.viewport.z, scene.viewport.w);
+        glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        for (const Model& model : scene.models)
+        {
+            if (model.material->model == Material::Model::Phong)
+            {
+                OpenGLPhongMesh* phongMesh = nullptr;
+                for (auto& meshes : phongMeshes)
+                    if (meshes.first == model.mesh.get())
+                        phongMesh = meshes.second;
+                if (!phongMesh)
+                {
+                    phongMesh = new OpenGLPhongMesh(*model.mesh);
+                    phongMeshes[model.mesh.get()] = phongMesh;
+                }
+
+                OpenGLPhongTexture* phongTexture = nullptr;
+                for (auto& texture : phongTextures)
+                    if (texture.first == model.material.get())
+                        phongTexture = texture.second;
+                if (!phongTexture)
+                {
+                    phongTexture = new OpenGLPhongTexture(*model.material);
+                    phongTextures[model.material.get()] = phongTexture;
+                }
+
+                if (model.transform)
+                    phongShader->modelMatrix         = model.transform->matrix();
+                phongShader->viewMatrix              = scene.view;
+                phongShader->projectionMatrix        = scene.projection;
+                phongShader->lightDirection          = lightDir;
+                phongShader->cameraPosition          = cameraPos;
+                phongShader->ambient                 = model.material->phong.ambient;
+                phongShader->diffuse                 = model.material->phong.diffuse;
+                phongShader->specular                = model.material->phong.specular;
+                phongShader->specularPower           = model.material->phong.specularPower;
+                phongShader->useAmbientSampler       = model.material->phong.ambientSampler.isValid();
+                phongShader->useDiffuseSampler       = model.material->phong.diffuseSampler.isValid();
+                phongShader->useSpecularSampler      = model.material->phong.specularSampler.isValid();
+                phongShader->useSpecularPowerSampler = model.material->phong.specularPowerSampler.isValid();
+                phongShader->useNormalSampler        = model.material->normalSampler.isValid();
+                phongShader->use();
+                phongTexture->bind();
+                phongMesh->draw();
+            }
+        }
     }
 
-    /* ------------------------------------------------------------ *
-     * ------------------------------------------------------------ */
-    void updateMatrices()
-    {
-        const glm::dmat4 viewInvMatrix = glm::inverse(viewMatrix);
-        cameraPos = glm::dvec3(viewInvMatrix * glm::dvec4(0.0, 0.0, 0.0, 1.0));
-        cameraMatrix = projectionMatrix * viewMatrix * modelMatrix;
-        normalMatrix = glm::inverseTranspose(glm::dmat3(modelMatrix));
-    }
-
-    /* ------------------------------------------------------------ *
-     * ------------------------------------------------------------ */
-    void drawFilledTriangleMesh(Mesh* mesh)
-    {}
-
-    /* ------------------------------------------------------------ *
-     * ------------------------------------------------------------ */
-    void drawEdgeLineTriangleMesh(Mesh* triangleMesh)
-    {}
-
-    /* ------------------------------------------------------------ *
-     * ------------------------------------------------------------ */
-    void drawLineMesh(Mesh* mesh)
-    {}
-
-    OpenGLFramebuffer framebuffer;
-    NormalMode normalMode;
-    glm::dmat4 modelMatrix;
-    glm::dmat4 viewMatrix;
-    glm::dmat4 projectionMatrix;
-    glm::dmat4 cameraMatrix;
-    glm::dmat3 normalMatrix;
-    glm::dvec3 lightDir;
-    glm::dvec3 cameraPos;
-    Material material;
+    std::map<Mesh*, OpenGLPhongMesh*> phongMeshes;
+    std::map<Material*, OpenGLPhongTexture*> phongTextures;
+    OpenGLPhongShader* phongShader;
 };
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-OpenGLReferenceRasterizer::OpenGLReferenceRasterizer(int width, int height)
-    : impl(std::make_shared<Impl>(width, height))
+OpenGLReferenceRasterizer::OpenGLReferenceRasterizer()
+    : impl(std::make_shared<Impl>())
 {}
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-void OpenGLReferenceRasterizer::clear()
-{ impl->clear(); }
-
-void OpenGLReferenceRasterizer::setModelMatrix(const glm::dmat4& model)
-{
-    impl->modelMatrix = model;
-    impl->updateMatrices();
-}
-
-/* ---------------------------------------------------------------- *
- * ---------------------------------------------------------------- */
-void OpenGLReferenceRasterizer::setViewMatrix(const glm::dmat4& view)
-{
-    impl->viewMatrix = view;
-    impl->updateMatrices();
-}
-
-/* ---------------------------------------------------------------- *
- * ---------------------------------------------------------------- */
-void OpenGLReferenceRasterizer::setProjectionMatrix(const glm::dmat4& projection)
-{
-    impl->projectionMatrix = projection;
-    impl->updateMatrices();
-}
-
-/* ---------------------------------------------------------------- *
- * ---------------------------------------------------------------- */
-void OpenGLReferenceRasterizer::setMaterial(const Material& material)
-{ impl->material = material; }
-
-/* ---------------------------------------------------------------- *
- * ---------------------------------------------------------------- */
-void OpenGLReferenceRasterizer::setNormalMode(OpenGLReferenceRasterizer::NormalMode normalMode)
-{ impl->normalMode = normalMode; }
-
-/* ---------------------------------------------------------------- *
- * ---------------------------------------------------------------- */
-void OpenGLReferenceRasterizer::drawFilledTriangleMesh(Mesh* mesh)
-{ impl->drawFilledTriangleMesh(mesh); }
-
-/* ---------------------------------------------------------------- *
- * ---------------------------------------------------------------- */
-void OpenGLReferenceRasterizer::drawEdgeLineTriangleMesh(Mesh* mesh)
-{ impl->drawEdgeLineTriangleMesh(mesh); }
-
-/* ---------------------------------------------------------------- *
- * ---------------------------------------------------------------- */
-void OpenGLReferenceRasterizer::drawLineMesh(Mesh* mesh)
-{ impl->drawLineMesh(mesh); }
-
-/* ---------------------------------------------------------------- *
- * ---------------------------------------------------------------- */
-void OpenGLReferenceRasterizer::run(GLuint fbo)
-{
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-    glViewport(0, 0, impl->framebuffer.width, impl->framebuffer.height);
-    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-}
-
-/* ---------------------------------------------------------------- *
- * ---------------------------------------------------------------- */
-OpenGLFramebuffer& OpenGLReferenceRasterizer::framebuffer() const
-{ return impl->framebuffer; }
+void OpenGLReferenceRasterizer::run(GLuint fbo, const Scene& scene)
+{ impl->run(fbo, scene); }
 
 } // namespace rasperi
 } // namespace kuu

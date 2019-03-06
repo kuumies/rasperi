@@ -5,8 +5,12 @@
 
 #pragma once
 
+#include <vector>
 #include <glad/glad.h>
+#include <glm/vec3.hpp>
+#include <glm/mat4x4.hpp>
 #include <QtWidgets/QOpenGLWidget>
+#include "rasperi_opengl_reference_rasterizer/rasperi_opengl_reference_rasterizer.h"
 
 namespace kuu
 {
@@ -14,7 +18,6 @@ namespace rasperi
 {
 
 class Controller;
-class OpenGLReferenceRasterizer;
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
@@ -27,7 +30,7 @@ public:
         Controller* controller,
         QWidget* parent = nullptr);
 
-    OpenGLReferenceRasterizer& rasterizer();
+    void setScene(const OpenGLReferenceRasterizer::Scene& scene);
 
 protected:
     void initializeGL() override;

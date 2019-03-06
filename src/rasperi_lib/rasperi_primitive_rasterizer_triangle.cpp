@@ -286,7 +286,10 @@ struct TrianglePrimitiveRasterizer::Impl
             specular = phong.specularSampler.sampleRgba(vertex.texCoord);
         specular = specular * std::pow(vDotR, specularPower);
 
-        return glm::dvec4(diffuse + specular, 1.0);
+        glm::dvec3 c = diffuse + specular;
+        c = glm::pow(c, glm::dvec3(1.0 / 2.2));
+
+        return glm::dvec4(c, 1.0);
     }
 
     /* ------------------------------------------------------------ *
