@@ -36,16 +36,24 @@ endif(BUILD_TYPE STREQUAL "debug")
 set(CMAKE_MODULE_PATH
     ${CMAKE_MODULE_PATH}
     ${CMAKE_CURRENT_SOURCE_DIR}/external/assimp
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/glad
     ${CMAKE_CURRENT_SOURCE_DIR}/external/glm
     ${CMAKE_CURRENT_SOURCE_DIR}/external/qt
 )
 
 include(add_assimp)
+include(add_glad)
 include(add_glm)
 include(add_qt)
 
+find_package(opengl REQUIRED)
 find_package(openmp REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+
+#---------------------------------------------------------------------
+# External sources
+
+add_subdirectory(external/glad)
 
 #---------------------------------------------------------------------
 # System install
@@ -83,6 +91,8 @@ target_link_libraries(
     ${PROJECT_NAME}
     ${QT_LIBRARIES}
     ${ASSIMP_LIBRARIES}
+    ${OPENGL_LIBRARIES}
+    gladlib
 )
 
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)

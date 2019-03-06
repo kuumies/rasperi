@@ -7,11 +7,14 @@
 #include "ui_rasperi_main_window.h"
 #include <QtWidgets/QFileDialog>
 #include <QtWidgets/QMessageBox>
+#include <QtWidgets/QSplitter>
+#include "rasperi_lib/rasperi_model.h"
 #include "rasperi_about_dialog.h"
 #include "rasperi_landing_dialog.h"
 #include "rasperi_import_pbr_models_dialog.h"
 #include "rasperi_import_phong_models_dialog.h"
-#include "rasperi_model.h"
+#include "rasperi_image_widget.h"
+#include "rasperi_opengl_widget.h"
 
 namespace kuu
 {
@@ -22,22 +25,44 @@ namespace rasperi
  * ---------------------------------------------------------------- */
 struct MainWindow::Impl
 {
-    Impl(Controller* controller)
-        : controller(controller)
-    {}
+    Impl(MainWindow *self, Controller* controller)
+        : self(self)
+        , controller(controller)
+        , splitter(new QSplitter())
+        , imageWidget(new ImageWidget(controller))
+        , openglWidget(new OpenGLWidget(controller))
+    {
+        splitter->addWidget(imageWidget);
+        splitter->addWidget(openglWidget);
+    }
 
+    void updateOpenGLWidgetVisibility()
+    {
+        const bool visible = ui.actionOpenGLReference->isChecked();
+        if (visible)
+            splitter->setSizes(QList<int>({INT_MAX, INT_MAX}));
+        else
+            splitter->setSizes(QList<int>({INT_MAX, 0}));
+    }
+
+    MainWindow *self;
     Ui::MainWindow ui;
     Controller* controller;
+    QSplitter* splitter;
+    ImageWidget* imageWidget;
+    OpenGLWidget* openglWidget;
 };
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
 MainWindow::MainWindow(Controller* controller, QWidget* parent)
     : QMainWindow(parent)
-    , impl(std::make_shared<Impl>(controller))
+    , impl(std::make_shared<Impl>(this, controller))
 {
     impl->ui.setupUi(this);
+    impl->updateOpenGLWidgetVisibility();
     setWindowIcon(QIcon("://icons/resource_usage_protect.png"));
+    setCentralWidget(impl->splitter);
 }
 
 /* ---------------------------------------------------------------- *
@@ -57,6 +82,16 @@ void MainWindow::showLandingDialog()
 
     dlg.exec();
 }
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+ImageWidget& MainWindow::imageWidget()
+{ return *impl->imageWidget; }
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+OpenGLWidget& MainWindow::openglWidget()
+{ return *impl->openglWidget; }
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
@@ -81,6 +116,13 @@ void MainWindow::showImportPbrModelsDialog()
     ImportPbrModelsDialog dlg(this);
     if (dlg.exec() == QDialog::Accepted)
         impl->controller->importModels(dlg.models());
+}
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+void MainWindow::showOpenGLReference(bool /*show*/)
+{
+    impl->updateOpenGLWidgetVisibility();
 }
 
 /* ---------------------------------------------------------------- *
@@ -120,6 +162,13 @@ void MainWindow::on_actionSaveImage_triggered()
         QMessageBox::critical(this, "Image Save Failed",
                               "Failed to save image to " + filepath);
     }
+}
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+void MainWindow::on_actionOpenGLReference_toggled(bool show)
+{
+    showOpenGLReference(show);
 }
 
 /* ---------------------------------------------------------------- *

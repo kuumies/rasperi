@@ -13,6 +13,9 @@ namespace kuu
 namespace rasperi
 {
 
+class ImageWidget;
+class OpenGLWidget;
+
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
 class MainWindow : public QMainWindow
@@ -26,15 +29,21 @@ public:
 
     void showLandingDialog();
 
+    ImageWidget& imageWidget();
+    OpenGLWidget& openglWidget();
+
 private slots:
     void viewPbrSphereScene();
     void showImportPhongModelsDialog();
     void showImportPbrModelsDialog();
+    void showOpenGLReference(bool show);
 
     void on_actionViewPBRSphere_triggered();
     void on_actionImportModelsPhong_triggered();
     void on_actionImportModelsPbr_triggered();
     void on_actionSaveImage_triggered();
+
+    void on_actionOpenGLReference_toggled(bool show);
 
     void on_actionAbout_triggered();
 

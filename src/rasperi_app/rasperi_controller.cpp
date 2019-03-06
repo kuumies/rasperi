@@ -9,16 +9,16 @@
 #include <QtWidgets/QProgressDialog>
 #include <QtCore/QDebug>
 #include <QtCore/QTime>
-#include "rasperi_camera.h"
+#include "rasperi_lib/rasperi_camera.h"
+#include "rasperi_lib/rasperi_model_importer.h"
+#include "rasperi_lib/rasperi_model.h"
+#include "rasperi_lib/rasperi_pbr_ibl_irradiance.h"
+#include "rasperi_lib/rasperi_pbr_ibl_prefilter.h"
+#include "rasperi_lib/rasperi_pbr_ibl_brdf_integration.h"
+#include "rasperi_lib/rasperi_rasterizer.h"
 #include "rasperi_camera_controller.h"
 #include "rasperi_image_widget.h"
 #include "rasperi_main_window.h"
-#include "rasperi_model_importer.h"
-#include "rasperi_model.h"
-#include "rasperi_pbr_ibl_irradiance.h"
-#include "rasperi_pbr_ibl_prefilter.h"
-#include "rasperi_pbr_ibl_brdf_integration.h"
-#include "rasperi_rasterizer.h"
 
 namespace kuu
 {
@@ -212,7 +212,6 @@ struct Controller::Impl
     Impl(Controller* self)
         : self(self)
         , mainWindow(self)
-        , imageWidget(self)
         , camera(std::make_shared<Camera>())
         , cameraController(std::make_shared<CameraController>(self))
         , rasterizer(720, 576)
@@ -308,7 +307,7 @@ struct Controller::Impl
 
         Framebuffer& framebuffer = rasterizer.framebuffer();
         image = framebuffer.colorTex.toQImage();
-        imageWidget.setImage(image);
+        mainWindow.imageWidget().setImage(image);
 
         qDebug() << __FUNCTION__ << timer.elapsed() << "ms";
     }
@@ -345,13 +344,13 @@ struct Controller::Impl
 
         if (!pbrIblIrradiance.read(dir))
         {
-            pbrIblIrradiance.run(imageWidget.bgImage());
+            pbrIblIrradiance.run(mainWindow.imageWidget().bgImage());
             pbrIblIrradiance.write(dir);
         }
 
         if (!pbrIblPrefilter.read(dir))
         {
-            pbrIblPrefilter.run(imageWidget.bgImage());
+            pbrIblPrefilter.run(mainWindow.imageWidget().bgImage());
             pbrIblPrefilter.write(dir);
         }
 
@@ -365,7 +364,6 @@ struct Controller::Impl
     Controller* self = nullptr;
     QImage image;
     MainWindow mainWindow;
-    ImageWidget imageWidget;
     std::shared_ptr<Camera> camera;
     std::shared_ptr<CameraController> cameraController;
     Rasterizer rasterizer;
@@ -393,15 +391,16 @@ std::shared_ptr<CameraController> Controller::cameraController() const
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-MainWindow &Controller::mainWindow() const
+MainWindow& Controller::mainWindow() const
 { return impl->mainWindow; }
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
 void Controller::setImageSize(int w, int h)
 {
-    impl->rasterizer = Rasterizer(w, h);
     impl->camera->aspectRatio = w / double(h);
+    impl->rasterizer = Rasterizer(w, h);
+    impl->rasterize(true);
 }
 
 /* ---------------------------------------------------------------- *
@@ -413,7 +412,6 @@ void Controller::rasterize(bool filled)
  * ---------------------------------------------------------------- */
 void Controller::showUi()
 {
-    impl->mainWindow.setCentralWidget(&impl->imageWidget);
     impl->mainWindow.showMaximized();
     QApplication::processEvents();
     impl->mainWindow.showLandingDialog();
@@ -640,8 +638,8 @@ bool Controller::importModels(const std::vector<Model>& models,
     double distance = impl->fittingDistance(
                 glm::dvec2(size.x, size.y),
                 glm::dvec4(0.0, 0.0,
-                           impl->imageWidget.width(),
-                           impl->imageWidget.height()),
+                           impl->mainWindow.imageWidget().width(),
+                           impl->mainWindow.imageWidget().height()),
                 impl->camera->fieldOfView);
 
 //    toOrigo.z = 100.0;
