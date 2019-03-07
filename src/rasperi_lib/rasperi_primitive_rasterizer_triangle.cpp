@@ -277,17 +277,24 @@ struct TrianglePrimitiveRasterizer::Impl
             diffuse = phong.diffuseSampler.sampleRgba(vertex.texCoord);
         diffuse *= nDotL;
 
+        glm::dvec3 specular = phong.specular;
+        if (phong.specularSampler.isValid())
+        {
+            if (phong.specularSampler.map().format() == QImage::Format_Grayscale8)
+                specular = glm::dvec3(phong.specularSampler.sampleGrayscale(vertex.texCoord));
+            else
+                specular = phong.specularSampler.sampleRgba(vertex.texCoord);
+        }
+
         double specularPower = phong.specularPower;
         if (phong.specularPowerSampler.isValid())
             specularPower = phong.specularPowerSampler.sampleRgba(vertex.texCoord).x;
 
-        glm::dvec3 specular = phong.specular;
-        if (phong.specularSampler.isValid())
-            specular = phong.specularSampler.sampleRgba(vertex.texCoord);
         specular = specular * std::pow(vDotR, specularPower);
 
         glm::dvec3 c = diffuse + specular;
         c = glm::pow(c, glm::dvec3(1.0 / 2.2));
+        //c = specular;
 
         return glm::dvec4(c, 1.0);
     }

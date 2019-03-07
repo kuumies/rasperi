@@ -204,8 +204,8 @@ struct Sampler::Impl
                       << std::endl;
         }
 
-        const unsigned char* line = reinterpret_cast<const unsigned char*>(map.scanLine(y));
-        unsigned char pixel = line[x];
+        const uchar* line = map.constScanLine(y);
+        uchar pixel = line[x];
         //if (pixel > 0)
         //    std::cout << "jee" << std::endl;
 

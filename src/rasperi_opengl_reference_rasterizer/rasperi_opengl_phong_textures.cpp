@@ -63,8 +63,8 @@ struct OpenGLPhongTexture::Impl
                 break;
 
             case QImage::Format_RGB32:
-                format = GL_BGR;
-                internalFormat = hasGamma ? GL_SRGB : GL_RGB;
+                format = GL_BGRA;
+                internalFormat = hasGamma ? GL_SRGB_ALPHA : GL_RGBA;
                 break;
 
             case QImage::Format_Grayscale8:

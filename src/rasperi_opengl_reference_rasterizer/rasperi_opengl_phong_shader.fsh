@@ -23,6 +23,7 @@ uniform bool useDiffuseSampler;
 uniform bool useSpecularSampler;
 uniform bool useSpecularPowerSampler;
 uniform bool useNormalSampler;
+uniform bool rgbSpecularSampler;
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
@@ -71,7 +72,12 @@ void main()
         dm = texture(diffuseSampler, vsOut.texCoord).rgb;
     vec3 sm = specular;
     if (useSpecularSampler)
-        sm = texture(specularSampler, vsOut.texCoord).rgb;
+    {
+        if (rgbSpecularSampler)
+            sm = texture(specularSampler, vsOut.texCoord).rgb;
+        else
+            sm = vec3(texture(specularSampler, vsOut.texCoord).r);
+    }
     float spm = specularPower;
     if (useSpecularPowerSampler)
         spm = texture(specularPowerSampler, vsOut.texCoord).r;

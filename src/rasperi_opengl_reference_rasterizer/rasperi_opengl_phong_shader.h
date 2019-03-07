@@ -37,6 +37,7 @@ public:
     bool useSpecularSampler;
     bool useSpecularPowerSampler;
     bool useNormalSampler;
+    bool rgbSpecularSampler;
 
 private:
     struct Impl;

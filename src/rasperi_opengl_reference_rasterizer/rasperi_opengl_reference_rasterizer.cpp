@@ -90,6 +90,7 @@ struct OpenGLReferenceRasterizer::Impl
                 phongShader->useSpecularSampler      = model.material->phong.specularSampler.isValid();
                 phongShader->useSpecularPowerSampler = model.material->phong.specularPowerSampler.isValid();
                 phongShader->useNormalSampler        = model.material->normalSampler.isValid();
+                phongShader->rgbSpecularSampler      = !model.material->phong.specularSampler.map().isGrayscale();
                 phongShader->use();
                 phongTexture->bind();
                 phongMesh->draw();

@@ -49,6 +49,7 @@ struct OpenGLPhongShader::Impl
         uniformUseSpecularSampler      = glGetUniformLocation(pgm, "useSpecularSampler");
         uniformUseSpecularPowerSampler = glGetUniformLocation(pgm, "useSpeculerPowerSampler");
         uniformUseNormalSampler        = glGetUniformLocation(pgm, "useNormalSampler");
+        uniformRgbSpecularSampler      = glGetUniformLocation(pgm, "rgbSpecularSampler");
     }
 
     /* ------------------------------------------------------------ *
@@ -85,6 +86,7 @@ struct OpenGLPhongShader::Impl
         glUniform1i(       uniformUseSpecularSampler,            self->useSpecularSampler);
         glUniform1i(       uniformUseSpecularPowerSampler,       self->useSpecularPowerSampler);
         glUniform1i(       uniformUseNormalSampler,              self->useNormalSampler);
+        glUniform1i(       uniformRgbSpecularSampler,            self->rgbSpecularSampler);
     }
 
     /* ------------------------------------------------------------ *
@@ -111,6 +113,7 @@ struct OpenGLPhongShader::Impl
     GLint uniformUseSpecularSampler;
     GLint uniformUseSpecularPowerSampler;
     GLint uniformUseNormalSampler;
+    GLint uniformRgbSpecularSampler;
 };
 
 /* ---------------------------------------------------------------- *
