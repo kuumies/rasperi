@@ -1,15 +1,15 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The definition of kuu::rasperi::OpenGLReferenceRasterizer class.
+   The definition of kuu::rasperi::OpenGLBackground class.
  * ---------------------------------------------------------------- */
  
 #pragma once
 
 #include <memory>
 #include <vector>
-#include <glm/mat4x4.hpp>
 #include <glad/glad.h>
-#include "rasperi_lib/rasperi_model.h"
+
+class QImage;
 
 namespace kuu
 {
@@ -18,23 +18,13 @@ namespace rasperi
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-class OpenGLReferenceRasterizer
+class OpenGLBackground
 {
 public:
-    struct Scene
-    {
-        glm::ivec4 viewport;
-        glm::vec3 lightDirection;
-        glm::vec3 cameraPosition;
-        glm::dmat4 view;
-        glm::dmat4 projection;
-        std::vector<Model> models;
-        QImage background;
-    };
+    OpenGLBackground(const QImage& bg);
 
-    OpenGLReferenceRasterizer();
-
-    void run(GLuint fbo, const Scene& scene);
+    GLuint tex() const;
+    void draw();
 
 private:
     struct Impl;

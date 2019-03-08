@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The definition of kuu::rasperi::OpenGLPhongMesh class.
+   The definition of kuu::rasperi::OpenGLTriangleMesh class.
  * ---------------------------------------------------------------- */
  
 #pragma once
@@ -17,10 +17,10 @@ namespace rasperi
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-class OpenGLPhongMesh
+class OpenGLTriangleMesh
 {
 public:
-    OpenGLPhongMesh(const Mesh& mesh);
+    OpenGLTriangleMesh(const Mesh& mesh);
 
     void draw();
 

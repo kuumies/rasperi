@@ -316,6 +316,7 @@ struct Controller::Impl
         if (mainWindow.isReferenceEnabled())
         {
             OpenGLReferenceRasterizer::Scene scene;
+            scene.background = mainWindow.imageWidget().bgImage();
             scene.view       = camera->viewMatrix();
             scene.projection = camera->projectionMatrix();
             scene.models     = models;
@@ -528,9 +529,7 @@ void Controller::viewPbrSphereScene()
         for (const PbrSphere& sphere : spheres)
         {
             QImage albedo(sphere.dir.absoluteFilePath(sphere.albedo));
-            if (albedo.format() != QImage::Format_RGB32)
-                albedo = albedo.convertToFormat(QImage::Format_RGB32);
-            out[sphere.albedo] = albedo.rgbSwapped();
+            out[sphere.albedo] = albedo;
 
             QImage roughness(sphere.dir.absoluteFilePath(sphere.roughness));
             if (roughness.format() != QImage::Format_Grayscale8)
@@ -586,6 +585,7 @@ void Controller::viewPbrSphereScene()
         m.material = std::make_shared<Material>();
         m.material->model = Material::Model::Pbr;
         m.material->pbr.albedoSampler.setMap(images[sphere.albedo]);
+        m.material->pbr.albedoSampler.setLinearizeGamma(true);
         m.material->pbr.roughnessSampler.setMap(images[sphere.roughness]);
         m.material->pbr.metalnessSampler.setMap(images[sphere.metal]);
         m.material->pbr.aoSampler.setMap(images[sphere.ao]);

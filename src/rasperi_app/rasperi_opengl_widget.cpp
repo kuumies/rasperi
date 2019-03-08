@@ -62,21 +62,6 @@ void OpenGLWidget::resizeGL(int w, int h)
  * ---------------------------------------------------------------- */
 void OpenGLWidget::paintGL()
 {
-//    impl->rasterizer.clear();
-//    impl->rasterizer.setNormalMode(OpenGLReferenceRasterizer::NormalMode::Smooth);
-//    impl->rasterizer.setViewMatrix(impl->scene.view);
-//    impl->rasterizer.setProjectionMatrix(impl->scene.projection);
-//    for (Model& model : impl->scene.models)
-//    {
-//        if (model.transform)
-//            impl->rasterizer.setModelMatrix(model.transform->matrix());
-//        if (model.material)
-//            impl->rasterizer.setMaterial(*model.material);
-//        if (filled)
-//            impl->rasterizer.drawFilledTriangleMesh(model.mesh.get());
-//        else
-//            impl->rasterizer.drawEdgeLineTriangleMesh(model.mesh.get());
-//    }
     impl->scene.viewport.z = width();
     impl->scene.viewport.w = height();
     impl->rasterizer->run(defaultFramebufferObject(),

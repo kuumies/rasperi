@@ -9,9 +9,14 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "rasperi_lib/rasperi_material.h"
 #include "rasperi_lib/rasperi_mesh.h"
-#include "rasperi_opengl_phong_mesh.h"
+#include "rasperi_opengl_background.h"
+#include "rasperi_opengl_pbr_ibl.h"
+#include "rasperi_opengl_ndc_mesh.h"
+#include "rasperi_opengl_pbr_shader.h"
+#include "rasperi_opengl_pbr_textures.h"
 #include "rasperi_opengl_phong_shader.h"
 #include "rasperi_opengl_phong_textures.h"
+#include "rasperi_opengl_triangle_mesh.h"
 
 namespace kuu
 {
@@ -25,15 +30,20 @@ struct OpenGLReferenceRasterizer::Impl
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
     Impl()
-        : phongShader(new OpenGLPhongShader())
+        : pbrShader(new OpenGLPbrShader())
+        , phongShader(new OpenGLPhongShader())
+        , bg(nullptr)
     {}
 
     ~Impl()
     {
+        delete bg;
         delete phongShader;
-        for (auto& meshes : phongMeshes)
+        for (auto& meshes : triangleMeshes)
             delete meshes.second;
         for (auto& texture : phongTextures)
+            delete texture.second;
+        for (auto& texture : pbrTextures)
             delete texture.second;
     }
 
@@ -41,6 +51,21 @@ struct OpenGLReferenceRasterizer::Impl
      * ------------------------------------------------------------ */
     void run(GLuint fbo, const Scene& scene)
     {
+        if (!bg)
+        {
+            std::shared_ptr<NdcQuadMesh> ndcQuad = std::make_shared<NdcQuadMesh>();
+            std::shared_ptr<NdcCubeMesh> ndcCube= std::make_shared<NdcCubeMesh>();
+
+            bg = new OpenGLBackground(scene.background);
+            pbrIbl = renderPbrImageLighting(ndcQuad,
+                                            ndcCube,
+                                            glm::ivec2(512, 512),
+                                            glm::ivec2(512, 512),
+                                            glm::ivec2(512, 512),
+                                            bg->tex());
+
+        }
+
         const glm::dmat4 viewInvMatrix = glm::inverse(scene.view);
         const glm::dvec3 cameraPos     = glm::dvec3(viewInvMatrix * glm::dvec4(0.0, 0.0, 0.0, 1.0));
         const glm::dvec3 lightDir      = glm::dvec3(0, 0, -1);
@@ -53,54 +78,111 @@ struct OpenGLReferenceRasterizer::Impl
 
         for (const Model& model : scene.models)
         {
-            if (model.material->model == Material::Model::Phong)
+            switch (model.material->model)
             {
-                OpenGLPhongMesh* phongMesh = nullptr;
-                for (auto& meshes : phongMeshes)
-                    if (meshes.first == model.mesh.get())
-                        phongMesh = meshes.second;
-                if (!phongMesh)
+                case Material::Model::Phong:
                 {
-                    phongMesh = new OpenGLPhongMesh(*model.mesh);
-                    phongMeshes[model.mesh.get()] = phongMesh;
-                }
+                    OpenGLTriangleMesh* triMesh = nullptr;
+                    for (auto& meshes : triangleMeshes)
+                        if (meshes.first == model.mesh.get())
+                            triMesh = meshes.second;
+                    if (!triMesh)
+                    {
+                        triMesh = new OpenGLTriangleMesh(*model.mesh);
+                        triangleMeshes[model.mesh.get()] = triMesh;
+                    }
 
-                OpenGLPhongTexture* phongTexture = nullptr;
-                for (auto& texture : phongTextures)
-                    if (texture.first == model.material.get())
-                        phongTexture = texture.second;
-                if (!phongTexture)
+                    OpenGLPhongTexture* phongTexture = nullptr;
+                    for (auto& texture : phongTextures)
+                        if (texture.first == model.material.get())
+                            phongTexture = texture.second;
+                    if (!phongTexture)
+                    {
+                        phongTexture = new OpenGLPhongTexture(*model.material);
+                        phongTextures[model.material.get()] = phongTexture;
+                    }
+
+                    if (model.transform)
+                        phongShader->modelMatrix         = model.transform->matrix();
+                    else
+                        phongShader->modelMatrix         = glm::mat4(1.0);
+                    phongShader->viewMatrix              = scene.view;
+                    phongShader->projectionMatrix        = scene.projection;
+                    phongShader->lightDirection          = lightDir;
+                    phongShader->cameraPosition          = cameraPos;
+                    phongShader->ambient                 = model.material->phong.ambient;
+                    phongShader->diffuse                 = model.material->phong.diffuse;
+                    phongShader->specular                = model.material->phong.specular;
+                    phongShader->specularPower           = model.material->phong.specularPower;
+                    phongShader->useAmbientSampler       = model.material->phong.ambientSampler.isValid();
+                    phongShader->useDiffuseSampler       = model.material->phong.diffuseSampler.isValid();
+                    phongShader->useSpecularSampler      = model.material->phong.specularSampler.isValid();
+                    phongShader->useSpecularPowerSampler = model.material->phong.specularPowerSampler.isValid();
+                    phongShader->useNormalSampler        = model.material->normalSampler.isValid();
+                    phongShader->rgbSpecularSampler      = !model.material->phong.specularSampler.map().isGrayscale();
+                    phongShader->use();
+                    phongTexture->bind();
+                    triMesh->draw();
+                    break;
+                }
+                
+                case Material::Model::Pbr:
                 {
-                    phongTexture = new OpenGLPhongTexture(*model.material);
-                    phongTextures[model.material.get()] = phongTexture;
-                }
+                    OpenGLTriangleMesh* triMesh = nullptr;
+                    for (auto& meshes : triangleMeshes)
+                        if (meshes.first == model.mesh.get())
+                            triMesh = meshes.second;
+                    if (!triMesh)
+                    {
+                        triMesh = new OpenGLTriangleMesh(*model.mesh);
+                        triangleMeshes[model.mesh.get()] = triMesh;
+                    }
 
-                if (model.transform)
-                    phongShader->modelMatrix         = model.transform->matrix();
-                phongShader->viewMatrix              = scene.view;
-                phongShader->projectionMatrix        = scene.projection;
-                phongShader->lightDirection          = lightDir;
-                phongShader->cameraPosition          = cameraPos;
-                phongShader->ambient                 = model.material->phong.ambient;
-                phongShader->diffuse                 = model.material->phong.diffuse;
-                phongShader->specular                = model.material->phong.specular;
-                phongShader->specularPower           = model.material->phong.specularPower;
-                phongShader->useAmbientSampler       = model.material->phong.ambientSampler.isValid();
-                phongShader->useDiffuseSampler       = model.material->phong.diffuseSampler.isValid();
-                phongShader->useSpecularSampler      = model.material->phong.specularSampler.isValid();
-                phongShader->useSpecularPowerSampler = model.material->phong.specularPowerSampler.isValid();
-                phongShader->useNormalSampler        = model.material->normalSampler.isValid();
-                phongShader->rgbSpecularSampler      = !model.material->phong.specularSampler.map().isGrayscale();
-                phongShader->use();
-                phongTexture->bind();
-                phongMesh->draw();
+                    OpenGLPbrTexture* pbrTexture = nullptr;
+                    for (auto& texture : pbrTextures)
+                        if (texture.first == model.material.get())
+                            pbrTexture = texture.second;
+                    if (!pbrTexture)
+                    {
+                        pbrTexture = new OpenGLPbrTexture(*model.material);
+                        pbrTextures[model.material.get()] = pbrTexture;
+                    }
+
+                    if (model.transform)
+                        pbrShader->modelMatrix             = model.transform->matrix();
+                    else
+                        pbrShader->modelMatrix             = glm::mat4(1.0);
+                    pbrShader->viewMatrix                  = scene.view;
+                    pbrShader->projectionMatrix            = scene.projection;
+                    pbrShader->lightDirection              = lightDir;
+                    pbrShader->cameraPosition              = cameraPos;
+                    pbrShader->albedo                      = model.material->pbr.albedo;
+                    pbrShader->roughness                   = model.material->pbr.roughness;
+                    pbrShader->metalness                   = model.material->pbr.metalness;
+                    pbrShader->ao                          = model.material->pbr.ao;
+                    pbrShader->useAlbedoSampler            = model.material->pbr.albedoSampler.isValid();
+                    pbrShader->useRoughnessSampler         = model.material->pbr.roughnessSampler.isValid();
+                    pbrShader->useMetalnessSampler         = model.material->pbr.metalnessSampler.isValid();
+                    pbrShader->useAoSampler                = model.material->pbr.aoSampler.isValid();
+                    pbrShader->useNormalSampler            = model.material->normalSampler.isValid();
+                    pbrShader->prefilterSamplerMipmapCount = pbrIbl->prefilterMipmapCount;
+                    pbrShader->use();
+                    pbrTexture->bind();
+                    pbrIbl->bind();
+                    triMesh->draw();
+                    break;
+                }
             }
         }
     }
 
-    std::map<Mesh*, OpenGLPhongMesh*> phongMeshes;
+    std::map<Mesh*, OpenGLTriangleMesh*> triangleMeshes;
+    std::map<Material*, OpenGLPbrTexture*> pbrTextures;
     std::map<Material*, OpenGLPhongTexture*> phongTextures;
+    OpenGLPbrShader* pbrShader;
     OpenGLPhongShader* phongShader;
+    OpenGLBackground* bg;
+    std::shared_ptr<PbrImageLightingTextures> pbrIbl;
 };
 
 /* ---------------------------------------------------------------- *

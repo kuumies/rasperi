@@ -1,15 +1,14 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The definition of kuu::rasperi::OpenGLReferenceRasterizer class.
+   The definition of kuu::rasperi::OpenGLPbrTexture class.
  * ---------------------------------------------------------------- */
  
 #pragma once
 
 #include <memory>
 #include <vector>
-#include <glm/mat4x4.hpp>
 #include <glad/glad.h>
-#include "rasperi_lib/rasperi_model.h"
+#include "rasperi_lib/rasperi_material.h"
 
 namespace kuu
 {
@@ -18,23 +17,12 @@ namespace rasperi
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-class OpenGLReferenceRasterizer
+class OpenGLPbrTexture
 {
 public:
-    struct Scene
-    {
-        glm::ivec4 viewport;
-        glm::vec3 lightDirection;
-        glm::vec3 cameraPosition;
-        glm::dmat4 view;
-        glm::dmat4 projection;
-        std::vector<Model> models;
-        QImage background;
-    };
+    OpenGLPbrTexture(const Material& material);
 
-    OpenGLReferenceRasterizer();
-
-    void run(GLuint fbo, const Scene& scene);
+    void bind();
 
 private:
     struct Impl;

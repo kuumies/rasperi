@@ -157,18 +157,17 @@ struct TrianglePrimitiveRasterizer::Impl
             glm::dvec3 n = glm::normalize(vertex.normal);
             glm::dvec3 l = glm::normalize(-lightDir);
             glm::dvec3 v = glm::normalize(cameraPos - vertex.position);
-            glm::dvec3 r = glm::reflect(-l, n);
             glm::dvec3 h = glm::normalize(v + l);
 
             glm::dvec4 color;
             switch(material.model)
             {
                 case Material::Model::Phong:
-                    color = litVertexPhong(vertex, material, n, v, l, r, h);
+                    color = litVertexPhong(vertex, material, n, v, l, h);
                     break;
 
                 case Material::Model::Pbr:
-                    color = litVertexPbr(vertex, material, n, v, l, r, h);
+                    color = litVertexPbr(vertex, material, n, v, l, h);
                     break;
             }
 
@@ -256,9 +255,10 @@ struct TrianglePrimitiveRasterizer::Impl
                              const glm::dvec3& n,
                              const glm::dvec3& v,
                              const glm::dvec3& l,
-                             const glm::dvec3& r,
                              const glm::dvec3& /*h*/) const
     {
+        glm::dvec3 r = glm::reflect(-l, n);
+
         double nDotL = glm::dot(n, l);
         nDotL = glm::clamp(nDotL, 0.0, 1.0);
 
@@ -293,8 +293,8 @@ struct TrianglePrimitiveRasterizer::Impl
         specular = specular * std::pow(vDotR, specularPower);
 
         glm::dvec3 c = diffuse + specular;
+        c = n;
         c = glm::pow(c, glm::dvec3(1.0 / 2.2));
-        //c = specular;
 
         return glm::dvec4(c, 1.0);
     }
@@ -306,16 +306,17 @@ struct TrianglePrimitiveRasterizer::Impl
                             const glm::dvec3& n,
                             const glm::dvec3& v,
                             const glm::dvec3& l,
-                            const glm::dvec3& r,
                             const glm::dvec3& h) const
     {
+        glm::dvec3 r = glm::reflect(-v, n);
+
         // --------------------------------------------------------
         // Vector angles
 
-        double nDotL = glm::max(glm::dot(n, l), 0.0);
-        double nDotV = glm::max(glm::dot(n, v), 0.0);
-        double nDotH = glm::max(glm::dot(n, h), 0.0);
-        double hDotV = glm::max(glm::dot(h, v), 0.0);
+        double nDotL = glm::clamp(glm::dot(n, l), 0.0, 1.0);
+        double nDotV = glm::clamp(glm::dot(n, v), 0.0, 1.0);
+        double nDotH = glm::clamp(glm::dot(n, h), 0.0, 1.0);
+        double hDotV = glm::clamp(glm::dot(h, v), 0.0, 1.0);
 
         // --------------------------------------------------------
         // Material
@@ -418,10 +419,17 @@ struct TrianglePrimitiveRasterizer::Impl
         int levelMax = glm::clamp(int(std::ceil(level)),  0, levelCount);
         const std::array<double, 4> prefilterPixMin = material.pbr.prefilter->face(face).mipmap(levelMin).pixel(tc.uv.x, tc.uv.y);
         const std::array<double, 4> prefilterPixMax = material.pbr.prefilter->face(face).mipmap(levelMax).pixel(tc.uv.x, tc.uv.y);
-        const glm::dvec3 prefilterer=
+        glm::dvec3 prefilterer =
             glm::dvec3((prefilterPixMin[0] + prefilterPixMax[0]) * 0.5,
                        (prefilterPixMin[1] + prefilterPixMax[0]) * 0.5,
                        (prefilterPixMin[2] + prefilterPixMax[0]) * 0.5);
+
+        texture_cube_mapping::TextureCoordinate tc2 =
+            texture_cube_mapping::mapPoint(r);
+        size_t face2 = size_t(tc2.faceIndex);
+        const std::array<double, 4> prefilterPix =
+            material.pbr.prefilter->face(face2).pixel(tc2.uv.x, tc2.uv.y);
+        prefilterer = glm::dvec3(prefilterPix[0], prefilterPix[1], prefilterPix[2]);
 
         // Sample BRDF integration.
         const std::array<double, 2> brdfIntegrationPix = material.pbr.brdfIntegration->pixel(nDotV, roughness);
@@ -437,9 +445,9 @@ struct TrianglePrimitiveRasterizer::Impl
 
         //double exposure = 0.1;
         //color = 1.0 - exp(-exposure * color);
-        glm::dvec3 color = radiance + irradiance;
+        glm::dvec3 color = radiance /*+ irradiance*/;
         color = color / (color + glm::dvec3(1.0));
-        color = pow(color, glm::dvec3(1.0/2.2));
+        color = pow(color, glm::dvec3(1.0 / 2.2));
 
         return glm::dvec4(color, 1.0);
     }

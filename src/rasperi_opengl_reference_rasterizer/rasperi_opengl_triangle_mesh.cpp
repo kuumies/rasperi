@@ -1,9 +1,9 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The implementation of kuu::rasperi::OpenGLPhongMesh class.
+   The implementation of kuu::rasperi::OpenGLTriangleMesh class.
  * ---------------------------------------------------------------- */
  
-#include "rasperi_opengl_phong_mesh.h"
+#include "rasperi_opengl_triangle_mesh.h"
 
 namespace kuu
 {
@@ -16,11 +16,11 @@ namespace rasperi
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-struct OpenGLPhongMesh::Impl
+struct OpenGLTriangleMesh::Impl
 {
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
-    Impl(OpenGLPhongMesh* self, const Mesh& mesh)
+    Impl(OpenGLTriangleMesh* self, const Mesh& mesh)
         : self(self)
     {
         std::vector<float> vertices;
@@ -105,7 +105,7 @@ struct OpenGLPhongMesh::Impl
 
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
-    OpenGLPhongMesh* self;
+    OpenGLTriangleMesh* self;
     GLuint pgm;
     GLuint vao;
     GLuint vbo;
@@ -115,13 +115,13 @@ struct OpenGLPhongMesh::Impl
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-OpenGLPhongMesh::OpenGLPhongMesh(const Mesh& mesh)
+OpenGLTriangleMesh::OpenGLTriangleMesh(const Mesh& mesh)
     : impl(std::make_shared<Impl>(this, mesh))
 {}
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-void OpenGLPhongMesh::draw()
+void OpenGLTriangleMesh::draw()
 { impl->draw(); }
 
 } // namespace rasperi
