@@ -242,15 +242,15 @@ struct Sampler::Impl
         std::cout << __FUNCTION__ << ": " << sc.x << ", " << sc.y << std::endl;
 
         QRgb* line = reinterpret_cast<QRgb*>(map.scanLine(sc.y));
-//        line[sc.x] = qRgba(qRound(rgba.r * 255.0),
-//                           qRound(rgba.g * 255.0),
-//                           qRound(rgba.b * 255.0),
-//                           qRound(rgba.a * 255.0));
-        line[sc.x] = qRgba(0, 0, 255, 255);
-        map.setPixel(sc.x, sc.y, qRgba(qRound(rgba.r * 255.0),
-                                       qRound(rgba.g * 255.0),
-                                       qRound(rgba.b * 255.0),
-                                       qRound(rgba.a * 255.0)));
+        line[sc.x] = qRgba(qRound(rgba.r * 255.0),
+                           qRound(rgba.g * 255.0),
+                           qRound(rgba.b * 255.0),
+                           qRound(rgba.a * 255.0));
+//        line[sc.x] = qRgba(0, 0, 255, 255);
+//        map.setPixel(sc.x, sc.y, qRgba(qRound(rgba.r * 255.0),
+//                                       qRound(rgba.g * 255.0),
+//                                       qRound(rgba.b * 255.0),
+//                                       qRound(rgba.a * 255.0)));
     }
 
     /* ------------------------------------------------------------ *

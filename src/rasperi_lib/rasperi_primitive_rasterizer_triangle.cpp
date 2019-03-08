@@ -432,7 +432,7 @@ struct TrianglePrimitiveRasterizer::Impl
         prefilterer = glm::dvec3(prefilterPix[0], prefilterPix[1], prefilterPix[2]);
 
         // Sample BRDF integration.
-        const std::array<double, 2> brdfIntegrationPix = material.pbr.brdfIntegration->pixel(nDotV, roughness);
+        const std::array<double, 2> brdfIntegrationPix = material.pbr.brdfIntegration->pixel(nDotV, 1.0 - roughness);
         const glm::dvec2 brdfIntegration =
             glm::dvec2(brdfIntegrationPix[0],
                        brdfIntegrationPix[1]);
@@ -445,7 +445,7 @@ struct TrianglePrimitiveRasterizer::Impl
 
         //double exposure = 0.1;
         //color = 1.0 - exp(-exposure * color);
-        glm::dvec3 color = radiance /*+ irradiance*/;
+        glm::dvec3 color = radiance + irradiance;
         color = color / (color + glm::dvec3(1.0));
         color = pow(color, glm::dvec3(1.0 / 2.2));
 
