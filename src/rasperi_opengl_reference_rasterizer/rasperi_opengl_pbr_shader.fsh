@@ -167,7 +167,7 @@ void main()
     // ------------------------------------------------------------
     // Post-process 
     
-    vec3 c = radiance + irradiance;
+    vec3 c = radiance/* + irradiance*/;
     c = c / (c + vec3(1.0));
     c = pow(c, vec3(1.0 / 2.2));
     

@@ -293,7 +293,6 @@ struct TrianglePrimitiveRasterizer::Impl
         specular = specular * std::pow(vDotR, specularPower);
 
         glm::dvec3 c = diffuse + specular;
-        c = n;
         c = glm::pow(c, glm::dvec3(1.0 / 2.2));
 
         return glm::dvec4(c, 1.0);

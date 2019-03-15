@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The definition of types of kuu::rasperi::PbrIblPrefilter class.
+   The definition of kuu::rasperi::PbrIblPrefilter class.
  * ---------------------------------------------------------------- */
  
 #pragma once
@@ -25,7 +25,7 @@ public:
     bool read(const QDir& dir);
     bool write(const QDir& dir);
 
-    void run(const QImage& bgMap);
+    void run(const TextureCube<double, 4>& bgCubeMap);
 
     TextureCube<double, 4> prefilterCubemap;
 

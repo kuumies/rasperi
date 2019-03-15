@@ -1,32 +1,32 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The definition of kuu::rasperi::OpenGLBackground class.
+   The definition of kuu::rasperi::OpenGLSkyBox class
  * ---------------------------------------------------------------- */
  
 #pragma once
 
 #include <memory>
-#include <vector>
 #include <glad/glad.h>
-#include "rasperi_lib/rasperi_texture_cube.h"
-
-class QImage;
+#include <glm/vec2.hpp>
+#include <glm/mat4x4.hpp>
 
 namespace kuu
 {
 namespace rasperi
-{
+{ 
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-class OpenGLBackground
+class OpenGLSkyBoxShader
 {
 public:
-    OpenGLBackground(const QImage& bg);
-    OpenGLBackground(const TextureCube<double, 4>& bg);
+    OpenGLSkyBoxShader();
 
-    GLuint tex() const;
-    void draw();
+    void use();
+
+    glm::mat4 viewMatrix;
+    glm::mat4 projectionMatrix;
+
 
 private:
     struct Impl;

@@ -5,9 +5,11 @@
  
 #pragma once
 
+#include <array>
 #include <iostream>
 #include <memory>
 #include <QtCore/QDataStream>
+#include <QtCore/QDebug>
 #include <QtCore/QFile>
 #include <QtGui/QImage>
 
@@ -80,7 +82,9 @@ public:
                 for (int c = 0; c < C; ++c)
                 {
                     T v = d->pixels[y * d->width * C + C * x + c];
-                    //v = v / (v + T(1.0)); // tone mapping HDR -> SDR
+                    v = v / (v + T(1.0)); // tone mapping HDR -> SDR
+                    v = std::pow(v, 1.0 / 2.2);
+
                     data.push_back(qRound(v * 255.0));
                 }
                 if (channels != C)
@@ -177,6 +181,11 @@ public:
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
     std::vector<T>& pixels()
+    { return d->pixels; }
+
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
+    const std::vector<T>& pixels() const
     { return d->pixels; }
 
     /* ------------------------------------------------------------ *
@@ -295,6 +304,10 @@ private:
      * ------------------------------------------------------------ */
     std::shared_ptr<Data> d;
 };
+
+/* ------------------------------------------------------------ *
+ * ------------------------------------------------------------ */
+Texture2D<double, 4> readHdr(const QString& filepath);
 
 } // namespace rasperi
 } // namespace kuu

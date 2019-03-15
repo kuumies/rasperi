@@ -8,6 +8,7 @@
 #include <memory>
 #include <glm/mat4x4.hpp>
 #include "rasperi_framebuffer.h"
+#include "rasperi_texture_cube.h"
 
 namespace kuu
 {
@@ -43,6 +44,7 @@ public:
     void setProjectionMatrix(const glm::dmat4& projection);
     void setMaterial(const Material& material);
     void setNormalMode(NormalMode normalMode);
+    void drawSky(const TextureCube<double, 4>& sky);
     void drawFilledTriangleMesh(Mesh* mesh);
     void drawEdgeLineTriangleMesh(Mesh* mesh);
     void drawLineMesh(Mesh* mesh);

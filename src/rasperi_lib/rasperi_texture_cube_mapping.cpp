@@ -151,9 +151,9 @@ TextureCoordinate mapPoint(const glm::dvec3& p)
     }
 
     // NEGATIVE X
-    else if (!isXPositive && absX >= absY && absX >= absZ)
+    if (!isXPositive && absX >= absY && absX >= absZ)
     {
-        return doIt(p);
+        //return doIt(p);
 
         // u (0 to 1) goes from -z to +z
         // v (0 to 1) goes from -y to +y
@@ -163,27 +163,27 @@ TextureCoordinate mapPoint(const glm::dvec3& p)
         index = 1;
     }
     // POSITIVE Y
-    else if (isYPositive && absY >= absX && absY >= absZ)
+    if (isYPositive && absY >= absX && absY >= absZ)
     {
         // u (0 to 1) goes from -x to +x
         // v (0 to 1) goes from +z to -z
         maxAxis = absY;
         uc =  p.x;
         vc = -p.z;
-        index = 2;
+        index = 3;
     }
     // NEGATIVE Y
-    else if (!isYPositive && absY >= absX && absY >= absZ)
+    if (!isYPositive && absY >= absX && absY >= absZ)
     {
         // u (0 to 1) goes from -x to +x
         // v (0 to 1) goes from -z to +z
         maxAxis = absY;
         uc = p.x;
         vc = p.z;
-        index = 3;
+        index = 2;
     }
     // POSITIVE Z
-    else if (isZPositive && absZ >= absX && absZ >= absY)
+    if (isZPositive && absZ >= absX && absZ >= absY)
     {
         // u (0 to 1) goes from -x to +x
         // v (0 to 1) goes from -y to +y
@@ -193,7 +193,7 @@ TextureCoordinate mapPoint(const glm::dvec3& p)
         index = 4;
     }
     // NEGATIVE Z
-    else if (!isZPositive && absZ >= absX && absZ >= absY)
+    if (!isZPositive && absZ >= absX && absZ >= absY)
     {
         // u (0 to 1) goes from +x to -x
         // v (0 to 1) goes from -y to +y

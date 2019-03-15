@@ -1,13 +1,14 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The implementation of kuu::rasperi::PbrIblIrradiance class.
+   The implementation of kuu::rasperi::SkyBox class.
  * ---------------------------------------------------------------- */
  
-#include "rasperi_pbr_ibl_irradiance.h"
+#include "rasperi_sky_box.h"
 #include <functional>
 #include <iostream>
-#include <QtCore/QDir>
-#include "rasperi_cube_camera.h"
+#include <glm/gtx/string_cast.hpp>
+#include <glm/vec4.hpp>
+#include "rasperi_framebuffer.h"
 #include "rasperi_texture_cube.h"
 #include "rasperi_texture_cube_mapping.h"
 
@@ -18,7 +19,7 @@ namespace rasperi
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-class IrradianceCubeRasterizer
+class SkyBoxRasterizer
 {
 public:
     /* ------------------------------------------------------------ *
@@ -46,26 +47,27 @@ public:
         glm::dvec2 max;
     };
 
-    using Callback = std::function<void(glm::dvec3)>;
+    using Callback = std::function<glm::dvec4(glm::dvec3)>;
 
     int w;
     int h;
     Callback callback;
-    CubeCamera cubeCamera;
 
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
-    IrradianceCubeRasterizer(int w, int h, Callback callback)
-        : w(w)
-        , h(h)
-        , callback(callback)
-        , cubeCamera(w / double(h))
+    SkyBoxRasterizer(Callback callback)
+        : callback(callback)
     {}
 
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
-    void run() const
+    void run(const glm::dmat4& camera,
+             const glm::ivec2& viewportSize,
+             Framebuffer& framebuffer)
     {
+        w = viewportSize.x;
+        h = viewportSize.y;
+
         // --------------------------------------------------------
         // Create NDC cube
 
@@ -81,31 +83,68 @@ public:
             { -1, 1, 1 },
         };
 
-        std::vector<unsigned> indexData
+        bool windingCCW = true;
+        std::vector<unsigned> indexData;
+        if (windingCCW)
         {
-            2,1,0, 3,0,1,
-            6,5,4, 4,7,6,
-            0,3,7, 7,4,0,
-            1,2,6, 5,6,2,
-            5,2,0, 0,4,5,
-            1,6,3, 7,3,6,
-        };
+            indexData =
+            {
+                0,1,2, 1,0,3,
+                4,5,6, 6,7,4,
+                7,3,0, 0,4,7,
+                6,2,1, 2,6,5,
+                0,2,5, 5,4,0,
+                3,6,1, 6,3,7,
+            };
+        }
+        else
+        {
+            indexData =
+            {
+                2,1,0, 3,0,1,
+                6,5,4, 4,7,6,
+                0,3,7, 7,4,0,
+                1,2,6, 5,6,2,
+                5,2,0, 0,4,5,
+                1,6,3, 7,3,6,
+            };
+        }
+
+//        std::vector<unsigned> indexData
+//        {
+//            2,1,0, 3,0,1,
+//            6,5,4, 4,7,6,
+//            0,3,7, 7,4,0,
+//            1,2,6, 5,6,2,
+//            5,2,0, 0,4,5,
+//            1,6,3, 7,3,6,
+//        };
 
         // --------------------------------------------------------
         // Rasterize
 
-        for (int face = 0; face < 6; ++face)
+        #pragma omp parallel for
+        for (int i = 0; i < indexData.size(); i += 3)
         {
-            std::cout << "Process face " << face << std::endl;
+            size_t ii = size_t(i); // OpenMP does not accept unsigned index in for loop
+            glm::dvec3 v1 = vertexData[indexData[ii+0]];
+            glm::dvec3 v2 = vertexData[indexData[ii+1]];
+            glm::dvec3 v3 = vertexData[indexData[ii+2]];
 
-            glm::dmat4 camera = cubeCamera.cameraMatrix(size_t(face));
+            const glm::dvec3 triNormal =
+                glm::normalize(glm::cross(v2 - v1,
+                                          v3 - v1));
 
-            #pragma omp parallel for
-            for (int i = 0; i < indexData.size(); i += 3)
+
+            std::vector<glm::dvec3> splitTriangle = split(v1, v2, v3, camera);
+            if (splitTriangle.empty())
+                continue;
+
+            for (size_t j = 0; j < splitTriangle.size(); j += 3)
             {
-                glm::dvec3 v1 = vertexData[indexData[i+0]];
-                glm::dvec3 v2 = vertexData[indexData[i+1]];
-                glm::dvec3 v3 = vertexData[indexData[i+2]];
+                v1 = splitTriangle[j + 0];
+                v2 = splitTriangle[j + 1];
+                v3 = splitTriangle[j + 2];
 
                 glm::dvec3 proj1 = project(camera, v1);
                 glm::dvec3 proj2 = project(camera, v2);
@@ -153,9 +192,16 @@ public:
                     w2 /= area;
                     w3 /= area;
 
+    //                // Depth test.
+//                    double d = framebuffer.depthTex.pixel(x, y)[0];
                     double z  = 1.0 / (w1 * 1.0 / proj1.z +
                                        w2 * 1.0 / proj2.z +
                                        w3 * 1.0 / proj3.z);
+//                    if (z >= d)
+//                        continue;
+
+//                    std::array<double, 1> depthPix = { z };
+//                    framebuffer.depthTex.setPixel(x, y, depthPix);
 
                     glm::dvec3 p1 = v1 / proj1.z;
                     glm::dvec3 p2 = v2 / proj2.z;
@@ -164,10 +210,63 @@ public:
                                    p2  * w2 * z +
                                    p3  * w3 * z;
 
-                    callback(p);
+                    glm::dvec4 color = callback(p);
+                    std::array<uchar, 4> colorPix =
+                    { uchar(color.r * 255.0),
+                      uchar(color.g * 255.0),
+                      uchar(color.b * 255.0),
+                      uchar(color.a * 255.0) };
+
+    //                std::array<uchar, 4> colorPix =
+    //                { 255,
+    //                  255,
+    //                  255,
+    //                  255 };
+
+                    framebuffer.colorTex.setPixel(x, y, colorPix);
                 }
             }
         }
+    }
+
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
+    std::vector<glm::dvec3> split(glm::dvec3 p1, glm::dvec3 p2, glm::dvec3 p3, const glm::dmat4& m) const
+    {
+        std::cout << glm::to_string(p1) << ", "
+                  << glm::to_string(p2) << ", "
+                  << glm::to_string(p3) << std::endl;
+
+        return { p1, p2, p3 };
+//
+//        glm::dvec4 pp1 = m * glm::dvec4(p1, 1.0);
+//        glm::dvec4 pp2 = m * glm::dvec4(p2, 1.0);
+//        glm::dvec4 pp3 = m * glm::dvec4(p3, 1.0);
+//
+//        kuu::BoundingBox bb(glm::dvec3(-1, -1, -1),
+//                            glm::dvec3( 1,  1,  1));
+//
+//        Vertex v1;
+//        v1.position = pp3;
+//        Vertex v2;
+//        v2.position = pp2;
+//        Vertex v3;
+//        v3.position = pp1;
+//
+//        std::vector<Vertex> poly = { v1, v2, v3  };
+//        auto res = clipPolygon(poly, bb.innerPlanes());
+//        qDebug() << res.size();
+//        //if (res.empty())
+//
+//        //glm::dmat4 im = glm::inverse(m);
+//        //std::vector<glm::dvec3> out;
+        //for (auto tri : res)
+        //{
+        //    out.push_back(glm::dvec4(tri.p0, 1.0) * im);
+        //    out.push_back(glm::dvec4(tri.p1, 1.0) * im);
+        //    out.push_back(glm::dvec4(tri.p2, 1.0) * im);
+        //}
+        //return out;
     }
 
     /* ------------------------------------------------------------ *
@@ -180,6 +279,7 @@ public:
             std::cerr << "proj err" << std::endl;
             return glm::dvec3(0.0);
         }
+
         return glm::dvec3(v.x / v.w, v.y / v.w, v.z / v.w);
     }
 
@@ -209,157 +309,58 @@ public:
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-struct PbrIblIrradiance::Impl
+struct SkyBox::Impl
 {
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
-    class BoundingBox
-    {
-    public:
-        BoundingBox()
-        {
-            min.x =  std::numeric_limits<double>::max();
-            min.y =  std::numeric_limits<double>::max();
-            max.x = -std::numeric_limits<double>::max();
-            max.y = -std::numeric_limits<double>::max();
-        }
-
-        void update(const glm::dvec2& p)
-        {
-            if (p.x < min.x) min.x = p.x;
-            if (p.y < min.y) min.y = p.y;
-            if (p.x > max.x) max.x = p.x;
-            if (p.y > max.y) max.y = p.y;
-        }
-
-        glm::dvec2 min;
-        glm::dvec2 max;
-    };
-
-
-    /* ------------------------------------------------------------ *
-     * ------------------------------------------------------------ */
-    Impl(PbrIblIrradiance* self, int size)
+    Impl(SkyBox* self)
         : self(self)
-        , size(size)
     {}
 
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
-    void run(const TextureCube<double, 4>& bgCubeMap)
+    void run(const TextureCube<double, 4>& sky,
+             const glm::dmat4& camera,
+             const glm::ivec2& viewportSize,
+             Framebuffer& framebuffer)
     {
          // --------------------------------------------------------
-        // Render irradiance map
+        // Render
 
-        auto irradienceCallback = [&](const glm::dvec3& p)
+        auto shadeCallback = [&](const glm::dvec3& p)
         {
-            glm::dvec3 normal= glm::normalize(p);
-            glm::dvec3 up    = glm::dvec3(0.0, 1.0, 0.0);
-            glm::dvec3 right = glm::cross(up, normal);
-                       up    = glm::cross(normal, right);
-
-            double sampleDelta = 0.025;
-            //double sampleDelta = 0.1;
-
-            // Sample hemisphere
-            glm::dvec3 irradiance = glm::dvec3(0.0);
-            double nrSamples = 0.0;
-            for(double  phi = 0.0;     phi < 2.0 * M_PI; phi   += sampleDelta)
-            for(double  theta = 0.0; theta < 0.5 * M_PI; theta += sampleDelta)
-            {
-                // spherical to cartesian (in tangent space)
-                const glm::dvec3 tangentSample =
-                    glm::dvec3(sin(theta) * cos(phi),
-                               sin(theta) * sin(phi),
-                               cos(theta));
-
-                // tangent space to world
-                const glm::dvec3 sampleVec =
-                    tangentSample.x * right +
-                    tangentSample.y * up +
-                    tangentSample.z * normal;
-
-                // Sample background
-                const texture_cube_mapping::TextureCoordinate texCoord =
-                    texture_cube_mapping::mapPoint(sampleVec);
-                const std::array<double, 4> texColors =
-                    bgCubeMap.face(size_t(texCoord.faceIndex)).pixel(texCoord.uv.x, texCoord.uv.y);
-                glm::dvec3 texColor(texColors[0],
-                                    texColors[1],
-                                    texColors[2]);
-
-                irradiance += texColor * cos(theta) * sin(theta);
-                nrSamples++;
-            }
-            irradiance = M_PI * irradiance * (1.0 / double(nrSamples));
+            glm::dvec3 normal = glm::normalize(p);
 
             const texture_cube_mapping::TextureCoordinate texCoord =
                 texture_cube_mapping::mapPoint(normal);
 
-            glm::ivec2 sc = mapCoord(texCoord.uv);
-            size_t face = size_t(texCoord.faceIndex);
-
-            std::array<double, 4> pix = { irradiance.r, irradiance.g, irradiance.b, 1.0 };
-            self->irradianceCubemap.face(face).setPixel(sc.x, sc.y, pix);
+            const std::array<double, 4> pix = sky.face(size_t(texCoord.faceIndex)).pixel(texCoord.uv.x, texCoord.uv.y);
+            glm::dvec3 color(pix[0], pix[1], pix[2]);
+            color = color / (color + glm::dvec3(1.0));
+            color = pow(color, glm::dvec3(1.0 / 2.2));
+            return glm::dvec4(color, 1.0);
         };
 
-        IrradianceCubeRasterizer rasterizer(size, size, irradienceCallback);
-        rasterizer.run();
-
-        self->irradianceCubemap.toQImage().save("/temp/mega.bmp");
+        SkyBoxRasterizer rasterizer(shadeCallback);
+        rasterizer.run(camera, viewportSize, framebuffer);
     }
 
-    /* ------------------------------------------------------------ *
-     * ------------------------------------------------------------ */
-    glm::ivec2 mapCoord(glm::dvec2 texCoord) const
-    {
-        texCoord.y = 1.0 - texCoord.y;
-        int px = int(std::floor(texCoord.x * double(size - 1)));
-        int py = int(std::floor(texCoord.y * double(size - 1)));
-        return glm::ivec2(px, py);
-    }
-
-    /* ------------------------------------------------------------ *
-     * ------------------------------------------------------------ */
-    bool read(const QDir& dir)
-    {
-        return self->irradianceCubemap.read(
-            dir.absoluteFilePath("pbr_ibl_irradiance.kuu"));
-    }
-
-    /* ------------------------------------------------------------ *
-     * ------------------------------------------------------------ */
-    bool write(const QDir& dir)
-    {
-        return self->irradianceCubemap.write(
-            dir.absoluteFilePath("pbr_ibl_irradiance.kuu"));
-    }
-
-    PbrIblIrradiance* self;
-    int size;
+    SkyBox* self;
 };
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-PbrIblIrradiance::PbrIblIrradiance(int size)
-    : irradianceCubemap(size, size)
-    , impl(std::make_shared<Impl>(this, size))
+SkyBox::SkyBox()
+    : impl(std::make_shared<Impl>(this))
 {}
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-bool PbrIblIrradiance::read(const QDir& dir)
-{ return impl->read(dir); }
-
-/* ---------------------------------------------------------------- *
- * ---------------------------------------------------------------- */
-bool PbrIblIrradiance::write(const QDir& dir)
-{ return impl->write(dir); }
-
-/* ---------------------------------------------------------------- *
- * ---------------------------------------------------------------- */
-void PbrIblIrradiance::run(const TextureCube<double, 4>& bgCube)
-{ impl->run(bgCube); }
+void SkyBox::run(const TextureCube<double, 4>& sky,
+                 const glm::dmat4& camera,
+                 const glm::ivec2& viewportSize,
+                 Framebuffer& framebuffer)
+{ impl->run(sky, camera, viewportSize, framebuffer); }
 
 } // namespace rasperi
 } // namespace kuu

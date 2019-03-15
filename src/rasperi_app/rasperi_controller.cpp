@@ -10,6 +10,7 @@
 #include <QtCore/QDebug>
 #include <QtCore/QTime>
 #include "rasperi_lib/rasperi_camera.h"
+#include "rasperi_lib/rasperi_equirectangular_to_cubemap.h"
 #include "rasperi_lib/rasperi_model_importer.h"
 #include "rasperi_lib/rasperi_model.h"
 #include "rasperi_lib/rasperi_pbr_ibl_irradiance.h"
@@ -217,10 +218,13 @@ struct Controller::Impl
         , camera(std::make_shared<Camera>())
         , cameraController(std::make_shared<CameraController>(self))
         , rasterizer(720, 576)
-        , pbrIblIrradiance(512)
-        , pbrIblPrefilter(512)
-        , pbrIblBrdfIntegration(512)
-    {}
+        //, pbrIblIrradiance(512)
+        //, pbrIblPrefilter(512)
+        //, pbrIblBrdfIntegration(512)
+    {
+        //skyTexture = readHdr("/temp/syferfontein_1d_clear_1k.hdr");
+        //skyCube = EquirectangularToCubemap(512).run(skyTexture);
+    }
 
 #if 0
     /* ------------------------------------------------------------- *
@@ -291,10 +295,13 @@ struct Controller::Impl
         QTime timer;
         timer.start();
 
+        //skyCube.toQImage().save("/temp/skycube.bmp");
+
         rasterizer.clear();
         rasterizer.setNormalMode(Rasterizer::NormalMode::Smooth);
         rasterizer.setViewMatrix(camera->viewMatrix());
         rasterizer.setProjectionMatrix(camera->projectionMatrix());
+        //rasterizer.drawSky(skyCube);
         for (Model& model : models)
         {
             if (model.transform)
@@ -316,6 +323,7 @@ struct Controller::Impl
         if (mainWindow.isReferenceEnabled())
         {
             OpenGLReferenceRasterizer::Scene scene;
+            //scene.skyTexture = skyTexture;
             scene.background = mainWindow.imageWidget().bgImage();
             scene.view       = camera->viewMatrix();
             scene.projection = camera->projectionMatrix();
@@ -355,25 +363,25 @@ struct Controller::Impl
      * ------------------------------------------------------------- */
     void createPbrIbl()
     {
-        QDir dir("/temp/");
+//        QDir dir = QDir::current();
 
-        if (!pbrIblIrradiance.read(dir))
-        {
-            pbrIblIrradiance.run(mainWindow.imageWidget().bgImage());
-            pbrIblIrradiance.write(dir);
-        }
+//        if (!pbrIblIrradiance.read(dir))
+//        {
+//            pbrIblIrradiance.run(skyCube);
+//            pbrIblIrradiance.write(dir);
+//        }
 
-        if (!pbrIblPrefilter.read(dir))
-        {
-            pbrIblPrefilter.run(mainWindow.imageWidget().bgImage());
-            pbrIblPrefilter.write(dir);
-        }
+//        if (!pbrIblPrefilter.read(dir))
+//        {
+//            pbrIblPrefilter.run(skyCube);
+//            pbrIblPrefilter.write(dir);
+//        }
 
-        if (!pbrIblBrdfIntegration.read(dir))
-        {
-            pbrIblBrdfIntegration.run();
-            pbrIblBrdfIntegration.write(dir);
-        }
+//        if (!pbrIblBrdfIntegration.read(dir))
+//        {
+//            pbrIblBrdfIntegration.run();
+//            pbrIblBrdfIntegration.write(dir);
+//        }
     }
 
     Controller* self = nullptr;
@@ -383,9 +391,11 @@ struct Controller::Impl
     std::shared_ptr<CameraController> cameraController;
     Rasterizer rasterizer;
     std::vector<Model> models;
-    PbrIblIrradiance pbrIblIrradiance;
-    PbrIblPrefilter pbrIblPrefilter;
-    PbrIblBrdfIntegration pbrIblBrdfIntegration;
+    //PbrIblIrradiance pbrIblIrradiance;
+    //PbrIblPrefilter pbrIblPrefilter;
+    //PbrIblBrdfIntegration pbrIblBrdfIntegration;
+    //Texture2D<double, 4> skyTexture;
+    //TextureCube<double, 4> skyCube;
 };
 
 /* ---------------------------------------------------------------- *
@@ -427,10 +437,11 @@ void Controller::rasterize(bool filled)
  * ---------------------------------------------------------------- */
 void Controller::showUi()
 {
+    impl->createPbrIbl();
     impl->mainWindow.showMaximized();
     QApplication::processEvents();
     impl->mainWindow.showLandingDialog();
-    //impl->mainWindow.showImportPhongModelsDialog();
+    //viewPbrSphereScene();
     //impl->mainWindow.setReferenceEnabled(true);
 }
 
@@ -581,7 +592,7 @@ void Controller::viewPbrSphereScene()
     for (const PbrSphere& sphere : spheres)
     {
         Model m;
-        m.mesh = std::make_shared<Sphere>(0.5, 32, 16);
+        m.mesh = std::make_shared<Sphere>(0.5, 32, 32);
         m.material = std::make_shared<Material>();
         m.material->model = Material::Model::Pbr;
         m.material->pbr.albedoSampler.setMap(images[sphere.albedo]);
@@ -633,12 +644,12 @@ bool Controller::importModels(const std::vector<Model>& models,
     if (!pbrModels.empty())
         impl->createPbrIbl();
 
-    for (const Model& model : pbrModels)
-    {
-        model.material->pbr.irradiance      = &impl->pbrIblIrradiance.irradianceCubemap;
-        model.material->pbr.prefilter       = &impl->pbrIblPrefilter.prefilterCubemap;
-        model.material->pbr.brdfIntegration = &impl->pbrIblBrdfIntegration.brdfIntegration2dMap;
-    }
+    //for (const Model& model : pbrModels)
+    //{
+    //    model.material->pbr.irradiance      = &impl->pbrIblIrradiance.irradianceCubemap;
+    //    model.material->pbr.prefilter       = &impl->pbrIblPrefilter.prefilterCubemap;
+    //    model.material->pbr.brdfIntegration = &impl->pbrIblBrdfIntegration.brdfIntegration2dMap;
+    //}
 
     // Model center point to origo
     if (moveRelatedToOrigo)

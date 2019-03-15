@@ -1,16 +1,12 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The definition of kuu::rasperi::OpenGLBackground class.
+   The definition of kuu::rasperi::EquirectangularToCubemap class.
  * ---------------------------------------------------------------- */
  
 #pragma once
 
 #include <memory>
-#include <vector>
-#include <glad/glad.h>
-#include "rasperi_lib/rasperi_texture_cube.h"
-
-class QImage;
+#include "rasperi_texture_cube.h"
 
 namespace kuu
 {
@@ -19,14 +15,12 @@ namespace rasperi
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-class OpenGLBackground
+class EquirectangularToCubemap
 {
 public:
-    OpenGLBackground(const QImage& bg);
-    OpenGLBackground(const TextureCube<double, 4>& bg);
+    EquirectangularToCubemap(int size = 128);
 
-    GLuint tex() const;
-    void draw();
+    TextureCube<double, 4> run(const Texture2D<double, 4>& e);
 
 private:
     struct Impl;

@@ -19,6 +19,8 @@ namespace rasperi
  * ---------------------------------------------------------------- */
 struct Vertex
 {
+    Vertex(){}
+    Vertex(glm::dvec3 position) : position(position){}
     glm::dvec3 position;
     glm::dvec2 texCoord;
     glm::dvec3 normal;
@@ -31,6 +33,20 @@ struct Vertex
  * ---------------------------------------------------------------- */
 struct Triangle
 {
+    Triangle();
+    Triangle(const Vertex& p0,
+             const Vertex& p1,
+             const Vertex& p2);
+
+    glm::vec3 normal() const;
+
+    bool contains(const glm::vec3& p) const;
+
+    bool barycentric(const glm::vec3& p,
+                     float& u,
+                     float& v,
+                     float& w) const;
+
     Vertex p1;
     Vertex p2;
     Vertex p3;

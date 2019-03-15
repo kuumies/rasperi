@@ -30,6 +30,7 @@ public:
         glm::dmat4 projection;
         std::vector<Model> models;
         QImage background;
+        Texture2D<double, 4> skyTexture;
     };
 
     OpenGLReferenceRasterizer();

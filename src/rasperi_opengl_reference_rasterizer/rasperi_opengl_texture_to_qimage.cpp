@@ -17,6 +17,26 @@ namespace opengl_texture_to_qimage
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
+QImage readRgbaTexture(GLuint tex)
+{
+    glBindTexture(GL_TEXTURE_2D, tex);
+
+    GLint w, h;
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH,  &w);
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &h);
+
+    QImage image(w, h, QImage::Format_RGBA8888);
+    glGetTexImage(GL_TEXTURE_2D, 0,
+                  GL_RGBA, GL_UNSIGNED_BYTE,
+                  image.bits());
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    QImage img = image.convertToFormat(QImage::Format_ARGB32);
+    return img.rgbSwapped();
+}
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
 QImage textureCube(GLuint tex, GLint level)
 {
     glBindTexture(GL_TEXTURE_CUBE_MAP, tex);

@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The definition of types of kuu::rasperi::PbrIblIrradiance class.
+   The definition of kuu::rasperi::PbrIblIrradiance class.
  * ---------------------------------------------------------------- */
  
 #pragma once
@@ -26,7 +26,7 @@ public:
     bool read(const QDir& dir);
     bool write(const QDir& dir);
 
-    void run(const QImage& bgMap);
+    void run(const TextureCube<double, 4>& bgCube);
 
     TextureCube<double, 4> irradianceCubemap;
 

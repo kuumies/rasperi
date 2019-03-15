@@ -1,9 +1,9 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The implementation of kuu::rasperi::PbrIblIrradiance class.
+   The implementation of kuu::rasperi::EquirectangularToCubemap class.
  * ---------------------------------------------------------------- */
  
-#include "rasperi_pbr_ibl_irradiance.h"
+#include "rasperi_equirectangular_to_cubemap.h"
 #include <functional>
 #include <iostream>
 #include <QtCore/QDir>
@@ -18,7 +18,7 @@ namespace rasperi
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-class IrradianceCubeRasterizer
+class CubeRasterizer
 {
 public:
     /* ------------------------------------------------------------ *
@@ -55,7 +55,7 @@ public:
 
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
-    IrradianceCubeRasterizer(int w, int h, Callback callback)
+    CubeRasterizer(int w, int h, Callback callback)
         : w(w)
         , h(h)
         , callback(callback)
@@ -100,7 +100,7 @@ public:
 
             glm::dmat4 camera = cubeCamera.cameraMatrix(size_t(face));
 
-            #pragma omp parallel for
+            //#pragma omp parallel for
             for (int i = 0; i < indexData.size(); i += 3)
             {
                 glm::dvec3 v1 = vertexData[indexData[i+0]];
@@ -209,104 +209,52 @@ public:
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-struct PbrIblIrradiance::Impl
+struct EquirectangularToCubemap::Impl
 {
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
-    class BoundingBox
-    {
-    public:
-        BoundingBox()
-        {
-            min.x =  std::numeric_limits<double>::max();
-            min.y =  std::numeric_limits<double>::max();
-            max.x = -std::numeric_limits<double>::max();
-            max.y = -std::numeric_limits<double>::max();
-        }
-
-        void update(const glm::dvec2& p)
-        {
-            if (p.x < min.x) min.x = p.x;
-            if (p.y < min.y) min.y = p.y;
-            if (p.x > max.x) max.x = p.x;
-            if (p.y > max.y) max.y = p.y;
-        }
-
-        glm::dvec2 min;
-        glm::dvec2 max;
-    };
-
-
-    /* ------------------------------------------------------------ *
-     * ------------------------------------------------------------ */
-    Impl(PbrIblIrradiance* self, int size)
+    Impl(EquirectangularToCubemap* self, int size)
         : self(self)
         , size(size)
     {}
 
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
-    void run(const TextureCube<double, 4>& bgCubeMap)
+    TextureCube<double, 4> run(const Texture2D<double, 4>& e)
     {
-         // --------------------------------------------------------
-        // Render irradiance map
+        TextureCube<double, 4> out(size, size);
 
-        auto irradienceCallback = [&](const glm::dvec3& p)
+        auto callback = [&](const glm::dvec3& p)
         {
-            glm::dvec3 normal= glm::normalize(p);
-            glm::dvec3 up    = glm::dvec3(0.0, 1.0, 0.0);
-            glm::dvec3 right = glm::cross(up, normal);
-                       up    = glm::cross(normal, right);
-
-            double sampleDelta = 0.025;
-            //double sampleDelta = 0.1;
-
-            // Sample hemisphere
-            glm::dvec3 irradiance = glm::dvec3(0.0);
-            double nrSamples = 0.0;
-            for(double  phi = 0.0;     phi < 2.0 * M_PI; phi   += sampleDelta)
-            for(double  theta = 0.0; theta < 0.5 * M_PI; theta += sampleDelta)
-            {
-                // spherical to cartesian (in tangent space)
-                const glm::dvec3 tangentSample =
-                    glm::dvec3(sin(theta) * cos(phi),
-                               sin(theta) * sin(phi),
-                               cos(theta));
-
-                // tangent space to world
-                const glm::dvec3 sampleVec =
-                    tangentSample.x * right +
-                    tangentSample.y * up +
-                    tangentSample.z * normal;
-
-                // Sample background
-                const texture_cube_mapping::TextureCoordinate texCoord =
-                    texture_cube_mapping::mapPoint(sampleVec);
-                const std::array<double, 4> texColors =
-                    bgCubeMap.face(size_t(texCoord.faceIndex)).pixel(texCoord.uv.x, texCoord.uv.y);
-                glm::dvec3 texColor(texColors[0],
-                                    texColors[1],
-                                    texColors[2]);
-
-                irradiance += texColor * cos(theta) * sin(theta);
-                nrSamples++;
-            }
-            irradiance = M_PI * irradiance * (1.0 / double(nrSamples));
+            glm::dvec3 n = glm::normalize(p);
+            glm::dvec2 uv = sampleSphericalMap(n);
+            std::array<double, 4> c = e.pixel(uv.x, uv.y);
 
             const texture_cube_mapping::TextureCoordinate texCoord =
-                texture_cube_mapping::mapPoint(normal);
+                texture_cube_mapping::mapPoint(n);
 
             glm::ivec2 sc = mapCoord(texCoord.uv);
             size_t face = size_t(texCoord.faceIndex);
-
-            std::array<double, 4> pix = { irradiance.r, irradiance.g, irradiance.b, 1.0 };
-            self->irradianceCubemap.face(face).setPixel(sc.x, sc.y, pix);
+            if (texCoord.faceIndex < 0 || texCoord.faceIndex > 5)
+                qDebug() << texCoord.faceIndex << sc.x << sc.y << texCoord.uv.x << texCoord.uv.y;
+            out.face(face).setPixel(sc.x, sc.y, c);
         };
 
-        IrradianceCubeRasterizer rasterizer(size, size, irradienceCallback);
+        CubeRasterizer rasterizer(size, size, callback);
         rasterizer.run();
 
-        self->irradianceCubemap.toQImage().save("/temp/mega.bmp");
+        return out;
+    }
+
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
+    glm::dvec2 sampleSphericalMap(const glm::dvec3& v)
+    {
+        const glm::dvec2 invAtan = glm::dvec2(0.1591, 0.3183);
+        glm::dvec2 uv = glm::dvec2(std::atan2(v.z, v.x), std::asin(v.y));
+        uv *= invAtan;
+        uv += 0.5;
+        return uv;
     }
 
     /* ------------------------------------------------------------ *
@@ -319,47 +267,20 @@ struct PbrIblIrradiance::Impl
         return glm::ivec2(px, py);
     }
 
-    /* ------------------------------------------------------------ *
-     * ------------------------------------------------------------ */
-    bool read(const QDir& dir)
-    {
-        return self->irradianceCubemap.read(
-            dir.absoluteFilePath("pbr_ibl_irradiance.kuu"));
-    }
-
-    /* ------------------------------------------------------------ *
-     * ------------------------------------------------------------ */
-    bool write(const QDir& dir)
-    {
-        return self->irradianceCubemap.write(
-            dir.absoluteFilePath("pbr_ibl_irradiance.kuu"));
-    }
-
-    PbrIblIrradiance* self;
+    EquirectangularToCubemap* self;
     int size;
 };
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-PbrIblIrradiance::PbrIblIrradiance(int size)
-    : irradianceCubemap(size, size)
-    , impl(std::make_shared<Impl>(this, size))
+EquirectangularToCubemap::EquirectangularToCubemap(int size)
+    : impl(std::make_shared<Impl>(this, size))
 {}
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-bool PbrIblIrradiance::read(const QDir& dir)
-{ return impl->read(dir); }
-
-/* ---------------------------------------------------------------- *
- * ---------------------------------------------------------------- */
-bool PbrIblIrradiance::write(const QDir& dir)
-{ return impl->write(dir); }
-
-/* ---------------------------------------------------------------- *
- * ---------------------------------------------------------------- */
-void PbrIblIrradiance::run(const TextureCube<double, 4>& bgCube)
-{ impl->run(bgCube); }
+TextureCube<double, 4> EquirectangularToCubemap::run(const Texture2D<double, 4>& e)
+{ return impl->run(e); }
 
 } // namespace rasperi
 } // namespace kuu

@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------- *
    Antti Jumpponen <kuumies@gmail.com>
-   The implementation of types of kuu::rasperi::PbrIblPrefilter class.
+   The implementation of kuu::rasperi::PbrIblPrefilter class.
  * ---------------------------------------------------------------- */
  
 #include "rasperi_pbr_ibl_prefilter.h"
@@ -254,27 +254,8 @@ struct PbrIblPrefilter::Impl
 
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
-    void run(const QImage& bgMap)
+    void run(const TextureCube<double, 4>& bgCubeMap)
     {
-        // --------------------------------------------------------
-        // Create SDR cubemap of background map
-
-        const QImage bgMapScaled =
-            bgMap.scaled(size, size,
-                         Qt::KeepAspectRatioByExpanding);
-
-        TextureCube<uchar, 4> bgCubeMap(size, size);
-        for (size_t f = 0; f < 6; ++f)
-        {
-            QImage face(size, size, QImage::Format_RGB32);
-            QPainter p(&face);
-            p.drawImage(face.rect(), bgMapScaled, face.rect());
-
-            memcpy(bgCubeMap.face(f).pixels().data(),
-                   face.bits(),
-                   size_t(face.sizeInBytes()));
-        }
-
         // --------------------------------------------------------
         // Render prefilter map
 
@@ -287,7 +268,6 @@ struct PbrIblPrefilter::Impl
             glm::dvec3 r = n;
             glm::dvec3 v = r;
 
-            //const uint SAMPLE_COUNT = 4;
             const uint SAMPLE_COUNT = 1024u;
             double totalWeight = 0.0;
             glm::dvec3 prefilteredColor = glm::dvec3(0.0);
@@ -304,12 +284,12 @@ struct PbrIblPrefilter::Impl
                     const texture_cube_mapping::TextureCoordinate tc =
                         texture_cube_mapping::mapPoint(l);
                     const size_t faceIndex = size_t(tc.faceIndex);
-                    const std::array<uchar, 4> pixel =
+                    const std::array<double, 4> pixel =
                         bgCubeMap.face(faceIndex).pixel(tc.uv.x, tc.uv.y);
                     prefilteredColor += glm::dvec3(
-                            pixel[0] / 255.0,
-                            pixel[1] / 255.0,
-                            pixel[2] / 255.0) * nDotL;
+                            pixel[0],
+                            pixel[1],
+                            pixel[2]) * nDotL;
                     totalWeight += nDotL;
                 }
             }
@@ -439,8 +419,8 @@ bool PbrIblPrefilter::write(const QDir& dir)
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */
-void PbrIblPrefilter::run(const QImage& bgMap)
-{ impl->run(bgMap); }
+void PbrIblPrefilter::run(const TextureCube<double, 4>& bgCubeMap)
+{ impl->run(bgCubeMap); }
 
 } // namespace rasperi
 } // namespace kuu

@@ -43,6 +43,15 @@ public:
     bool isNull() const
     { return d->width == 0 || d->height == 0; }
 
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
+    int width() const
+    { return d->width; }
+
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
+    int height() const
+    { return d->height; }
 
     /* ------------------------------------------------------------ *
      * ------------------------------------------------------------ */
@@ -80,12 +89,12 @@ public:
             const int w = d->width;
             const int h = d->height;
             const QRect sourceRect(0, 0, w, h);
-            p.drawImage(QRect(    w,     0, w, h), d->faces[0].toQImage(), sourceRect); // +Y
+            p.drawImage(QRect(    w,     0, w, h), d->faces[2].toQImage(), sourceRect); // +Y
             p.drawImage(QRect(    0,     h, w, h), d->faces[1].toQImage(), sourceRect); // -X
-            p.drawImage(QRect(    w,     h, w, h), d->faces[2].toQImage(), sourceRect); // +Z
-            p.drawImage(QRect(2 * w,     h, w, h), d->faces[3].toQImage(), sourceRect); // +X
-            p.drawImage(QRect(3 * w,     h, w, h), d->faces[4].toQImage(), sourceRect); // -Z
-            p.drawImage(QRect(    w, 2 * h, w, h), d->faces[5].toQImage(), sourceRect); // -Z
+            p.drawImage(QRect(    w,     h, w, h), d->faces[4].toQImage(), sourceRect); // +Z
+            p.drawImage(QRect(2 * w,     h, w, h), d->faces[0].toQImage(), sourceRect); // +X
+            p.drawImage(QRect(3 * w,     h, w, h), d->faces[5].toQImage(), sourceRect); // -Z
+            p.drawImage(QRect(    w, 2 * h, w, h), d->faces[3].toQImage(), sourceRect); // -Y
         }
         else
         {
@@ -96,12 +105,12 @@ public:
             out = QImage(w * 4, h * 3, QImage::Format_RGB32);
             out.fill(0);
             QPainter p(&out);
-            p.drawImage(QRect(    w,     0, w, h), d->faces[0].mipmap(mipmap).toQImage(), sourceRect); // +Y
+            p.drawImage(QRect(    w,     0, w, h), d->faces[2].mipmap(mipmap).toQImage(), sourceRect); // +Y
             p.drawImage(QRect(    0,     h, w, h), d->faces[1].mipmap(mipmap).toQImage(), sourceRect); // -X
-            p.drawImage(QRect(    w,     h, w, h), d->faces[2].mipmap(mipmap).toQImage(), sourceRect); // +Z
-            p.drawImage(QRect(2 * w,     h, w, h), d->faces[3].mipmap(mipmap).toQImage(), sourceRect); // +X
-            p.drawImage(QRect(3 * w,     h, w, h), d->faces[4].mipmap(mipmap).toQImage(), sourceRect); // -Z
-            p.drawImage(QRect(    w, 2 * h, w, h), d->faces[5].mipmap(mipmap).toQImage(), sourceRect); // -Z
+            p.drawImage(QRect(    w,     h, w, h), d->faces[4].mipmap(mipmap).toQImage(), sourceRect); // +Z
+            p.drawImage(QRect(2 * w,     h, w, h), d->faces[0].mipmap(mipmap).toQImage(), sourceRect); // +X
+            p.drawImage(QRect(3 * w,     h, w, h), d->faces[5].mipmap(mipmap).toQImage(), sourceRect); // -Z
+            p.drawImage(QRect(    w, 2 * h, w, h), d->faces[3].mipmap(mipmap).toQImage(), sourceRect); // -Y
         }
 
         return out;

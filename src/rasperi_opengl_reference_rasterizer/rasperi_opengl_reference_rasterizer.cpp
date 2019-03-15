@@ -10,6 +10,7 @@
 #include "rasperi_lib/rasperi_material.h"
 #include "rasperi_lib/rasperi_mesh.h"
 #include "rasperi_opengl_background.h"
+#include "rasperi_opengl_equirectangular_to_cubemap.h"
 #include "rasperi_opengl_pbr_ibl.h"
 #include "rasperi_opengl_ndc_mesh.h"
 #include "rasperi_opengl_pbr_shader.h"
@@ -17,6 +18,7 @@
 #include "rasperi_opengl_phong_shader.h"
 #include "rasperi_opengl_phong_textures.h"
 #include "rasperi_opengl_triangle_mesh.h"
+#include "rasperi_opengl_sky_box_shader.h"
 
 namespace kuu
 {
@@ -32,11 +34,14 @@ struct OpenGLReferenceRasterizer::Impl
     Impl()
         : pbrShader(new OpenGLPbrShader())
         , phongShader(new OpenGLPhongShader())
+        , skyBoxShader(new OpenGLSkyBoxShader())
         , bg(nullptr)
+        , eToCm(512)
     {}
 
     ~Impl()
     {
+        delete skyBoxShader;
         delete bg;
         delete phongShader;
         for (auto& meshes : triangleMeshes)
@@ -51,10 +56,13 @@ struct OpenGLReferenceRasterizer::Impl
      * ------------------------------------------------------------ */
     void run(GLuint fbo, const Scene& scene)
     {
+#if 0
         if (!bg)
         {
             std::shared_ptr<NdcQuadMesh> ndcQuad = std::make_shared<NdcQuadMesh>();
-            std::shared_ptr<NdcCubeMesh> ndcCube= std::make_shared<NdcCubeMesh>();
+            std::shared_ptr<NdcCubeMesh> ndcCube = std::make_shared<NdcCubeMesh>();
+
+            eToCm.run(scene.skyTexture);
 
             bg = new OpenGLBackground(scene.background);
             pbrIbl = renderPbrImageLighting(ndcQuad,
@@ -62,9 +70,9 @@ struct OpenGLReferenceRasterizer::Impl
                                             glm::ivec2(512, 512),
                                             glm::ivec2(512, 512),
                                             glm::ivec2(512, 512),
-                                            bg->tex());
-
+                                            eToCm.cubemap);
         }
+#endif
 
         const glm::dmat4 viewInvMatrix = glm::inverse(scene.view);
         const glm::dvec3 cameraPos     = glm::dvec3(viewInvMatrix * glm::dvec4(0.0, 0.0, 0.0, 1.0));
@@ -75,6 +83,22 @@ struct OpenGLReferenceRasterizer::Impl
         glViewport(0, 0, scene.viewport.z, scene.viewport.w);
         glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+#if 0
+        //glDepthMask(GL_FALSE);
+        glDepthFunc(GL_LEQUAL);
+        glDisable(GL_CULL_FACE);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, eToCm.cubemap);
+        skyBoxShader->viewMatrix       = scene.view;
+        skyBoxShader->projectionMatrix = scene.projection;
+        skyBoxShader->use();
+        ndcCube.draw();
+        glUseProgram(0);
+        glDepthFunc(GL_LESS);
+        //glDepthMask(GL_TRUE);
+        glEnable(GL_CULL_FACE);
+#endif
 
         for (const Model& model : scene.models)
         {
@@ -165,10 +189,10 @@ struct OpenGLReferenceRasterizer::Impl
                     pbrShader->useMetalnessSampler         = model.material->pbr.metalnessSampler.isValid();
                     pbrShader->useAoSampler                = model.material->pbr.aoSampler.isValid();
                     pbrShader->useNormalSampler            = model.material->normalSampler.isValid();
-                    pbrShader->prefilterSamplerMipmapCount = pbrIbl->prefilterMipmapCount;
+                    //pbrShader->prefilterSamplerMipmapCount = pbrIbl->prefilterMipmapCount;
                     pbrShader->use();
                     pbrTexture->bind();
-                    pbrIbl->bind();
+                    //pbrIbl->bind();
                     triMesh->draw();
                     break;
                 }
@@ -181,8 +205,11 @@ struct OpenGLReferenceRasterizer::Impl
     std::map<Material*, OpenGLPhongTexture*> phongTextures;
     OpenGLPbrShader* pbrShader;
     OpenGLPhongShader* phongShader;
+    OpenGLSkyBoxShader* skyBoxShader;
     OpenGLBackground* bg;
     std::shared_ptr<PbrImageLightingTextures> pbrIbl;
+    NdcCubeMesh ndcCube;
+    OpenGLEquirectangularToCubemap eToCm;
 };
 
 /* ---------------------------------------------------------------- *

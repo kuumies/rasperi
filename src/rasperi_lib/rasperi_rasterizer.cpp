@@ -10,6 +10,7 @@
 #include "rasperi_mesh.h"
 #include "rasperi_primitive_rasterizer.h"
 #include "rasperi_sampler.h"
+#include "rasperi_sky_box.h"
 
 namespace kuu
 {
@@ -118,6 +119,20 @@ struct Rasterizer::Impl
         linRast.rasterize(*mesh, cameraMatrix);
     }
 
+    /* ------------------------------------------------------------ *
+     * ------------------------------------------------------------ */
+    void drawSky(const TextureCube<double, 4>& sky)
+    {
+        glm::dmat4 viewRotMatrix = glm::dmat4(glm::dmat3(viewMatrix));
+        //glm::dmat4 viewRotMatrix = viewMatrix;
+
+        skybox.run(sky,
+                   projectionMatrix * viewRotMatrix,
+                   glm::ivec2(framebuffer.colorTex.width(),
+                              framebuffer.colorTex.height()),
+                   framebuffer);
+    }
+
     Framebuffer framebuffer;
     NormalMode normalMode;
     glm::dmat4 modelMatrix;
@@ -128,6 +143,7 @@ struct Rasterizer::Impl
     glm::dvec3 lightDir;
     glm::dvec3 cameraPos;
     Material material;
+    SkyBox skybox;
 };
 
 /* ---------------------------------------------------------------- *
@@ -172,6 +188,11 @@ void Rasterizer::setMaterial(const Material& material)
  * ---------------------------------------------------------------- */
 void Rasterizer::setNormalMode(Rasterizer::NormalMode normalMode)
 { impl->normalMode = normalMode; }
+
+/* ---------------------------------------------------------------- *
+ * ---------------------------------------------------------------- */
+void Rasterizer::drawSky(const TextureCube<double, 4>& sky)
+{ impl->drawSky(sky); }
 
 /* ---------------------------------------------------------------- *
  * ---------------------------------------------------------------- */

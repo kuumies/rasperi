@@ -86,7 +86,6 @@ void main()
     sm = sm * pow(vDotR, spm);
 
     vec3 c = dm + sm;
-    c = n;
     //c = c / (c + vec3(1.0));
     c = pow(c, vec3(1.0 / 2.2));
     color.rgb = c;
